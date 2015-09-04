@@ -18,18 +18,23 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 {
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    setSize (400, 300);
+    setSize (600, 300);
 
 	// Set properties for the Output Volume Slider
-	outputVolume.setSliderStyle(Slider::LinearBarVertical);
+	outputVolume.setBounds(500, 50, 50, 200);
+	outputVolume.setSliderStyle(Slider::LinearVertical);
 	outputVolume.setRange(0.0, 127.0, 1.0);
-	outputVolume.setTextBoxStyle(Slider::NoTextBox, false, 90, 0);
+	outputVolume.setTextBoxStyle(Slider::TextBoxBelow, false, 50, 50);
 	outputVolume.setPopupDisplayEnabled(true, this);
 	outputVolume.setTextValueSuffix(" Volume");
 	outputVolume.setValue(1.0);
 	outputVolume.addListener(this);
 
+	outputVolLabel.setBounds(485, 40, 80, 10);
+	outputVolLabel.setText("Output Volume", NotificationType::dontSendNotification);
+
 	addAndMakeVisible(&outputVolume);
+	addAndMakeVisible(&outputVolLabel);
 }
 
 PrototypeAudioProcessorEditor::~PrototypeAudioProcessorEditor()

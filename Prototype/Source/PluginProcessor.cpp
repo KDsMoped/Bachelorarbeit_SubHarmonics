@@ -161,7 +161,6 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			newChannelData[i] *= outGain;
 		}
 
-
     }
 }
 
