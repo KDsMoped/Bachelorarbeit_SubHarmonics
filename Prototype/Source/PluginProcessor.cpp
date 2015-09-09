@@ -12,13 +12,55 @@
 #include "PluginEditor.h"
 
 
+class FloatParameter : public AudioProcessorParameter {
+public:
+
+	FloatParameter(float defaultParameterValue, const String& paramName)
+		: defaultValue(defaultParameterValue),
+		value(defaultParameterValue),
+		name(paramName) {
+	}
+
+	float getValue() const override {
+		return value;
+	}
+
+	void setValue(float newValue) override {
+		value = newValue;
+	}
+
+	float getDefaultValue() const override {
+		return defaultValue;
+	}
+
+	String getName(int /* maximumStringLength */) const override {
+		return name;
+	}
+
+	String getLabel() const override {
+		return String();
+	}
+
+	float getValueForText(const String& text) const override {
+		return text.getFloatValue();
+	}
+
+private:
+	float defaultValue, value;
+	String name;
+};
+
+const float defaultInputGain = 0.5f;
+const float defaultOutputGain = 0.5f;
+
 //==============================================================================
-PrototypeAudioProcessor::PrototypeAudioProcessor()
-{
+PrototypeAudioProcessor::PrototypeAudioProcessor() {
+	// Set up our parameters. The base class will delete them for us.
+	addParameter(inputGain = new FloatParameter(defaultInputGain, "Input Gain"));
+	addParameter(outputGain = new FloatParameter(defaultOutputGain, "Output Gain"));
 }
 
-PrototypeAudioProcessor::~PrototypeAudioProcessor()
-{
+PrototypeAudioProcessor::~PrototypeAudioProcessor() {
 }
 
 //==============================================================================
@@ -27,6 +69,7 @@ const String PrototypeAudioProcessor::getName() const
     return JucePlugin_Name;
 }
 
+/*
 int PrototypeAudioProcessor::getNumParameters()
 {
     return 0;
@@ -50,6 +93,7 @@ const String PrototypeAudioProcessor::getParameterText (int index)
 {
     return String();
 }
+*/
 
 const String PrototypeAudioProcessor::getInputChannelName (int channelIndex) const
 {
@@ -136,6 +180,12 @@ void PrototypeAudioProcessor::releaseResources()
     // spare memory, etc.
 }
 
+void PrototypeAudioProcessor::reset()
+{
+	// Use this method as the place to clear any delay lines, buffers, etc, as it
+	// means there's been a break in the audio's continuity.
+}
+
 void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& midiMessages)
 {
     // In case we have more outputs than inputs, this code clears any output
@@ -144,13 +194,13 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
     // I've added this to avoid people getting screaming feedback
     // when they first compile the plugin, but obviously you don't need to
     // this code if your algorithm already fills all the output channels.
-    for (int i=getNumInputChannels(); i<getNumOutputChannels(); ++i)
-        buffer.clear (i, 0, buffer.getNumSamples());
+	for(int i = getNumInputChannels(); i < getNumOutputChannels(); ++i) {
+		buffer.clear(i, 0, buffer.getNumSamples());
+	}
 
     // This is the place where you'd normally do the guts of your plugin's
     // audio processing...
-    for (int channel=0; channel<getNumInputChannels(); ++channel)
-    {
+    for(int channel=0; channel<getNumInputChannels(); ++channel) {
         float* channelData = buffer.getWritePointer(channel);
 
         // ..do something to the data...
@@ -158,9 +208,8 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 		float* newChannelData = channelData;
 
 		for (int i = 0; i < getBlockSize(); i++) {
-			newChannelData[i] *= outGain;
+			newChannelData[i] *= outputGain->getValue();
 		}
-
     }
 }
 

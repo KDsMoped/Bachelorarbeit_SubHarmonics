@@ -18,25 +18,44 @@
 //==============================================================================
 /**
 */
-class PrototypeAudioProcessorEditor  : public AudioProcessorEditor, 
-									   private Slider::Listener
+class PrototypeAudioProcessorEditor : public AudioProcessorEditor,
+									  private Slider::Listener,
+									//  private ToggleButton::Listener,
+									  private Timer
 {
 public:
     PrototypeAudioProcessorEditor (PrototypeAudioProcessor&);
     ~PrototypeAudioProcessorEditor();
 
     //==============================================================================
-    void paint(Graphics&) override;
-    void resized() override;
+	void timerCallback() override;
+	void paint(Graphics&) override;
+	void resized() override;
 	void sliderValueChanged(Slider *slider) override;
+	void sliderDragStarted(Slider*) override;
+	void sliderDragEnded(Slider*) override;
 
 private:
-    // This reference is provided as a quick way for your editor to
+	/*
+	// This reference is provided as a quick way for your editor to
     // access the processor object that created it.
     PrototypeAudioProcessor& processor;
+	*/
+	Slider inputGainSlider;
+	Label inputGainLabel;
 
-	Slider outputVolume;
-	Label outputVolLabel;
+	Slider outputGainSlider;
+	Label outputGainLabel;
+
+	ToggleButton bypassButton;
+
+	//==============================================================================
+	PrototypeAudioProcessor& getProcessor() const
+	{
+		return static_cast<PrototypeAudioProcessor&> (processor);
+	}
+
+	AudioProcessorParameter* getParameterFromSlider(const Slider*) const;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PrototypeAudioProcessorEditor)
 };

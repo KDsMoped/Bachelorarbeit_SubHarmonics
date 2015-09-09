@@ -27,8 +27,8 @@ public:
     //==============================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
     void releaseResources() override;
-
     void processBlock (AudioSampleBuffer&, MidiBuffer&) override;
+	void reset() override;
 
     //==============================================================================
     AudioProcessorEditor* createEditor() override;
@@ -37,12 +37,14 @@ public:
     //==============================================================================
     const String getName() const override;
 
-    int getNumParameters() override;
+	/* ??????
+	int getNumParameters() override;
     float getParameter (int index) override;
     void setParameter (int index, float newValue) override;
 
     const String getParameterName (int index) override;
     const String getParameterText (int index) override;
+	*/
 
     const String getInputChannelName (int channelIndex) const override;
     const String getOutputChannelName (int channelIndex) const override;
@@ -66,8 +68,9 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
 	//==============================================================================
-	float outGain;
-
+	// List of Parameters
+	AudioProcessorParameter* inputGain;
+	AudioProcessorParameter* outputGain;
 
 private:
     //==============================================================================

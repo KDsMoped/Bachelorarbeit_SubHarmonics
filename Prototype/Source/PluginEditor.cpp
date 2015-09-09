@@ -13,57 +13,117 @@
 
 
 //==============================================================================
-PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProcessor& p)
-	: AudioProcessorEditor(&p), processor(p)
-{
+PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProcessor& owningProcessor)
+	: AudioProcessorEditor(owningProcessor) {
+
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
     setSize (600, 300);
 
-	// Set properties for the Output Volume Slider
-	outputVolume.setBounds(500, 50, 50, 200);
-	outputVolume.setSliderStyle(Slider::LinearVertical);
-	outputVolume.setRange(0.0, 127.0, 1.0);
-	outputVolume.setTextBoxStyle(Slider::TextBoxBelow, false, 50, 50);
-	outputVolume.setPopupDisplayEnabled(true, this);
-	outputVolume.setTextValueSuffix(" Volume");
-	outputVolume.setValue(1.0);
-	outputVolume.addListener(this);
+	// Set properties for the Input Gain Slider
+	inputGainSlider.setSliderStyle(Slider::LinearVertical);
+	inputGainSlider.setRange(0.0, 1.0, 0.01);
+	inputGainSlider.setSliderSnapsToMousePosition(false);
+	inputGainSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, 50);
+	inputGainSlider.setTextValueSuffix(" Volume");
+	inputGainSlider.addListener(this);
 
-	outputVolLabel.setBounds(485, 40, 80, 10);
-	outputVolLabel.setText("Output Volume", NotificationType::dontSendNotification);
+	// Set properties for the Input Gain Label
+	inputGainLabel.setText("Input Volume", NotificationType::dontSendNotification);
 
-	addAndMakeVisible(&outputVolume);
-	addAndMakeVisible(&outputVolLabel);
+	// Set properties for the Output Gain Slider
+	outputGainSlider.setSliderStyle(Slider::LinearVertical);
+	outputGainSlider.setRange(0.0, 1.0, 0.01);
+	outputGainSlider.setSliderSnapsToMousePosition(false);
+	outputGainSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, 50);
+	outputGainSlider.setTextValueSuffix(" Volume");
+	outputGainSlider.addListener(this);
+
+	// Set properties for the Output Gain Label
+	outputGainLabel.setText("Output Volume", NotificationType::dontSendNotification);
+
+	//bypassButton.addListener(this);
+
+	addAndMakeVisible(inputGainSlider);
+	addAndMakeVisible(inputGainLabel);
+	addAndMakeVisible(&outputGainSlider);
+	addAndMakeVisible(&outputGainLabel);
+	addAndMakeVisible(&bypassButton);
+
+	startTimer(50);
 }
 
-PrototypeAudioProcessorEditor::~PrototypeAudioProcessorEditor()
-{
+PrototypeAudioProcessorEditor::~PrototypeAudioProcessorEditor() {
 }
 
 //==============================================================================
 void PrototypeAudioProcessorEditor::paint (Graphics& g)
 {
-    // Fill the whole window white
-	g.fillAll (Colours::white);
+	// Fill the whole window white
+	g.fillAll (Colours::grey);
 
 	// Set the current drawing colour to black
 	g.setColour (Colours::black);
-    
+
 	// Set the font size and draw text to the screen
 	g.setFont (15.0f);
-
-    g.drawFittedText ("Output Volume", getLocalBounds(), Justification::centred, 1);
 }
 
 void PrototypeAudioProcessorEditor::resized()
 {
     // This is generally where you'll want to lay out the positions of any
     // subcomponents in your editor..
+	inputGainSlider.setBounds(50, 50, 50, 210);
+	inputGainLabel.setBounds(35, 40, 80, 15);
 
-	outputVolume.setBounds(40, 30, 20, getHeight() - 60);
+	outputGainSlider.setBounds(500, 50, 50, 210);
+	outputGainLabel.setBounds(485, 40, 80, 15);
+
+	bypassButton.setBounds(300, 200, 40, 40);
 }
 
+//==============================================================================
+// This timer periodically checks whether any of the filter's parameters have changed...
+void PrototypeAudioProcessorEditor::timerCallback() {
+	inputGainSlider.setValue(getProcessor().inputGain->getValue(), dontSendNotification);
+	outputGainSlider.setValue(getProcessor().outputGain->getValue(), dontSendNotification);
+}
+
+// This is our Slider::Listener callback, when the user drags a slider.
 void PrototypeAudioProcessorEditor::sliderValueChanged(Slider *slider) {
-	processor.outGain = outputVolume.getValue();
+	//getProcessor().inputGain = inputGainSlider.getValue();
+	//getProcessor().outputGain = outputGainSlider.getValue();
+
+	if (AudioProcessorParameter* param = getParameterFromSlider(slider))
+	{
+		// It's vital to use setValueNotifyingHost to change any parameters that are automatable
+		// by the host, rather than just modifying them directly, otherwise the host won't know
+		// that they've changed.
+		param->setValueNotifyingHost((float)slider->getValue());
+	}
+}
+
+void PrototypeAudioProcessorEditor::sliderDragStarted(Slider* slider)
+{
+	if (AudioProcessorParameter* param = getParameterFromSlider(slider))
+	{
+		param->beginChangeGesture();
+	}
+}
+
+void PrototypeAudioProcessorEditor::sliderDragEnded(Slider* slider)
+{
+	if (AudioProcessorParameter* param = getParameterFromSlider(slider))
+	{
+		param->endChangeGesture();
+	}
+}
+
+//==============================================================================
+AudioProcessorParameter* PrototypeAudioProcessorEditor::getParameterFromSlider(const Slider* slider) const
+{
+	if (slider == &inputGainSlider) { return getProcessor().inputGain; }
+	if (slider == &outputGainSlider) { return getProcessor().outputGain; }
+
+	return nullptr;
 }
