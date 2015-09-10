@@ -20,7 +20,7 @@
 */
 class PrototypeAudioProcessorEditor : public AudioProcessorEditor,
 									  private Slider::Listener,
-									//  private ToggleButton::Listener,
+									  private Button::Listener,
 									  private Timer
 {
 public:
@@ -34,6 +34,7 @@ public:
 	void sliderValueChanged(Slider *slider) override;
 	void sliderDragStarted(Slider*) override;
 	void sliderDragEnded(Slider*) override;
+	void buttonClicked(Button* button) override;
 
 private:
 	/*
@@ -47,7 +48,7 @@ private:
 	Slider outputGainSlider;
 	Label outputGainLabel;
 
-	ToggleButton bypassButton;
+	ToggleButton masterBypassButton;
 
 	//==============================================================================
 	PrototypeAudioProcessor& getProcessor() const
@@ -56,6 +57,7 @@ private:
 	}
 
 	AudioProcessorParameter* getParameterFromSlider(const Slider*) const;
+	AudioProcessorParameter* getParameterFromButton(const Button*) const;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PrototypeAudioProcessorEditor)
 };

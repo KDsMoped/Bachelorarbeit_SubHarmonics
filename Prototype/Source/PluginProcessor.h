@@ -71,6 +71,7 @@ public:
 	// List of Parameters
 	AudioProcessorParameter* inputGain;
 	AudioProcessorParameter* outputGain;
+	AudioProcessorParameter* masterBypass;
 
 private:
     //==============================================================================

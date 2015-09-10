@@ -15,10 +15,11 @@
 class FloatParameter : public AudioProcessorParameter {
 public:
 
-	FloatParameter(float defaultParameterValue, const String& paramName)
-		: defaultValue(defaultParameterValue),
-		value(defaultParameterValue),
-		name(paramName) {
+	FloatParameter(float defaultValue, int numSteps, const String& name)
+		: defaultValue(defaultValue),
+		value(defaultValue),
+		numSteps(numSteps),
+		name(name) {
 	}
 
 	float getValue() const override {
@@ -31,6 +32,15 @@ public:
 
 	float getDefaultValue() const override {
 		return defaultValue;
+	}
+
+	int getNumSteps() const override {
+		if (numSteps > 1) {
+			return numSteps;
+		}
+		else {
+			return AudioProcessor::getDefaultNumParameterSteps();
+		}
 	}
 
 	String getName(int /* maximumStringLength */) const override {
@@ -47,17 +57,20 @@ public:
 
 private:
 	float defaultValue, value;
+	int numSteps;
 	String name;
 };
 
+const float defaultMasterBypass = 0;
 const float defaultInputGain = 0.5f;
 const float defaultOutputGain = 0.5f;
 
 //==============================================================================
 PrototypeAudioProcessor::PrototypeAudioProcessor() {
 	// Set up our parameters. The base class will delete them for us.
-	addParameter(inputGain = new FloatParameter(defaultInputGain, "Input Gain"));
-	addParameter(outputGain = new FloatParameter(defaultOutputGain, "Output Gain"));
+	addParameter(masterBypass = new FloatParameter(defaultMasterBypass, 2, "Master Bypass"));
+	addParameter(inputGain = new FloatParameter(defaultInputGain, 0, "Input Gain"));
+	addParameter(outputGain = new FloatParameter(defaultOutputGain, 0, "Output Gain"));
 }
 
 PrototypeAudioProcessor::~PrototypeAudioProcessor() {
@@ -208,7 +221,16 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 		float* newChannelData = channelData;
 
 		for (int i = 0; i < getBlockSize(); i++) {
-			newChannelData[i] *= outputGain->getValue();
+			// Check if bypassed
+			if (masterBypass->getValue() == 0) {
+				// Apply Input Gain
+				newChannelData[i] *= inputGain->getValue();
+				// Apply Output Gain
+				newChannelData[i] *= outputGain->getValue();
+			}
+			else {
+				// TODO: Apply Latency...
+			}
 		}
     }
 }

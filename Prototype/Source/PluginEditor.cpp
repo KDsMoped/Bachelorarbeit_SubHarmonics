@@ -42,13 +42,14 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 	// Set properties for the Output Gain Label
 	outputGainLabel.setText("Output Volume", NotificationType::dontSendNotification);
 
-	//bypassButton.addListener(this);
+	masterBypassButton.addListener(this);
+	masterBypassButton.setButtonText("Master Bypass");
 
-	addAndMakeVisible(inputGainSlider);
-	addAndMakeVisible(inputGainLabel);
+	addAndMakeVisible(&inputGainSlider);
+	addAndMakeVisible(&inputGainLabel);
 	addAndMakeVisible(&outputGainSlider);
 	addAndMakeVisible(&outputGainLabel);
-	addAndMakeVisible(&bypassButton);
+	addAndMakeVisible(&masterBypassButton);
 
 	startTimer(50);
 }
@@ -79,7 +80,7 @@ void PrototypeAudioProcessorEditor::resized()
 	outputGainSlider.setBounds(500, 50, 50, 210);
 	outputGainLabel.setBounds(485, 40, 80, 15);
 
-	bypassButton.setBounds(300, 200, 40, 40);
+	masterBypassButton.setBounds(250, 250, 100, 40);
 }
 
 //==============================================================================
@@ -89,6 +90,7 @@ void PrototypeAudioProcessorEditor::timerCallback() {
 	outputGainSlider.setValue(getProcessor().outputGain->getValue(), dontSendNotification);
 }
 
+//==============================================================================
 // This is our Slider::Listener callback, when the user drags a slider.
 void PrototypeAudioProcessorEditor::sliderValueChanged(Slider *slider) {
 	//getProcessor().inputGain = inputGainSlider.getValue();
@@ -113,17 +115,31 @@ void PrototypeAudioProcessorEditor::sliderDragStarted(Slider* slider)
 
 void PrototypeAudioProcessorEditor::sliderDragEnded(Slider* slider)
 {
-	if (AudioProcessorParameter* param = getParameterFromSlider(slider))
-	{
+	if (AudioProcessorParameter* param = getParameterFromSlider(slider)) {
 		param->endChangeGesture();
 	}
 }
 
 //==============================================================================
-AudioProcessorParameter* PrototypeAudioProcessorEditor::getParameterFromSlider(const Slider* slider) const
+// TODO:: make to toggleButtonClicked?
+void PrototypeAudioProcessorEditor::buttonClicked(Button* button)
 {
+	if (AudioProcessorParameter* param = getParameterFromButton(button)) {
+		param->setValueNotifyingHost((float)button->getToggleState());
+	}
+			
+
+}
+
+
+//==============================================================================
+AudioProcessorParameter* PrototypeAudioProcessorEditor::getParameterFromSlider(const Slider* slider) const {
 	if (slider == &inputGainSlider) { return getProcessor().inputGain; }
 	if (slider == &outputGainSlider) { return getProcessor().outputGain; }
 
 	return nullptr;
+}
+
+AudioProcessorParameter* PrototypeAudioProcessorEditor::getParameterFromButton(const Button* button) const {
+	if (button == &masterBypassButton) { return getProcessor().masterBypass; }
 }
