@@ -185,6 +185,8 @@ void PrototypeAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
+
+	// Clearing buffers
 }
 
 void PrototypeAudioProcessor::releaseResources()
@@ -197,36 +199,62 @@ void PrototypeAudioProcessor::reset()
 {
 	// Use this method as the place to clear any delay lines, buffers, etc, as it
 	// means there's been a break in the audio's continuity.
+
+	// Clearing buffers
 }
 
 void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& midiMessages)
 {
-    // In case we have more outputs than inputs, this code clears any output
-    // channels that didn't contain input data, (because these aren't
-    // guaranteed to be empty - they may contain garbage).
-    // I've added this to avoid people getting screaming feedback
-    // when they first compile the plugin, but obviously you don't need to
-    // this code if your algorithm already fills all the output channels.
+	const int numSamples = buffer.getNumSamples();
+
+    // Clearing obsolete output channels
 	for(int i = getNumInputChannels(); i < getNumOutputChannels(); ++i) {
-		buffer.clear(i, 0, buffer.getNumSamples());
+		buffer.clear(i, 0, numSamples);
 	}
 
     // This is the place where you'd normally do the guts of your plugin's
     // audio processing...
-    for(int channel=0; channel<getNumInputChannels(); ++channel) {
-        float* channelData = buffer.getWritePointer(channel);
-
-        // ..do something to the data...
-		
-		float* newChannelData = channelData;
+    for(int ch=0; ch < getNumInputChannels(); ++ch) {
+        // Retrieve pointers to modify each buffers channel data
+		float* channelData = buffer.getWritePointer(ch);
 
 		for (int i = 0; i < getBlockSize(); i++) {
 			// Check if bypassed
 			if (masterBypass->getValue() == 0) {
 				// Apply Input Gain
-				newChannelData[i] *= inputGain->getValue();
+				channelData[i] *= inputGain->getValue();
+
+				// Store current sample value in buffers for the various signal paths
+				float effectBufferedSample = channelData[i];
+				float rectifierBufferedSample = channelData[i];
+				float triggerBufferedSample = channelData[i];
+				float drySignalBufferedSample = channelData[i];
+
+				// TODO: Full Wave Rectifier
+				if (rectifierBufferedSample < 0) {
+					rectifierBufferedSample *= -1;
+				} 
+					// TODO: Add Smoothing Filter
+
+
+				// Summing Unit
+				effectBufferedSample = (effectBufferedSample + rectifierBufferedSample) / 2;
+
+				// TODO: Square Root Extractor
+
+				// TODO: Signal Conditioner/Trigger Circuit
+
+				// TODO: Counter
+
+				// TODO: Variable Amplifier
+
+				// TODO: Post Filter
+
+				// TODO: Mixing Amplifier
+				channelData[i] = (effectBufferedSample + drySignalBufferedSample) / 2;
+
 				// Apply Output Gain
-				newChannelData[i] *= outputGain->getValue();
+				channelData[i] *= outputGain->getValue();
 			}
 			else {
 				// TODO: Apply Latency...
