@@ -238,15 +238,19 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 
 
 				// Summing Unit
-				effectBufferedSample = (effectBufferedSample + rectifierBufferedSample) / 2;
+				effectBufferedSample = (effectBufferedSample + rectifierBufferedSample);
 
 				// TODO: Square Root Extractor
+				effectBufferedSample = square(effectBufferedSample);
 
 				// TODO: Signal Conditioner/Trigger Circuit
 
 				// TODO: Counter
+				int sign = 1;
+				if (triggerBufferedSample)
 
 				// TODO: Variable Amplifier
+				effectBufferedSample *= sign;
 
 				// TODO: Post Filter
 
