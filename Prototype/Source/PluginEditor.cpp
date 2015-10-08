@@ -18,7 +18,15 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    setSize (600, 300);
+    setSize (550, 300);
+
+	// Set properties for Master Bypass Button
+	masterBypassButton.addListener(this);
+	masterBypassButton.setButtonText("Master Bypass");
+
+	// Set properties for Solo Sub Button
+	soloSubButton.addListener(this);
+	soloSubButton.setButtonText("Solo Sub");
 
 	// Set properties for the Input Gain Slider
 	inputGainSlider.setSliderStyle(Slider::LinearVertical);
@@ -27,7 +35,6 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 	inputGainSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, 50);
 	inputGainSlider.setTextValueSuffix(" Volume");
 	inputGainSlider.addListener(this);
-
 	// Set properties for the Input Gain Label
 	inputGainLabel.setText("Input Volume", NotificationType::dontSendNotification);
 
@@ -38,18 +45,53 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 	outputGainSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, 50);
 	outputGainSlider.setTextValueSuffix(" Volume");
 	outputGainSlider.addListener(this);
-
 	// Set properties for the Output Gain Label
 	outputGainLabel.setText("Output Volume", NotificationType::dontSendNotification);
 
-	masterBypassButton.addListener(this);
-	masterBypassButton.setButtonText("Master Bypass");
+	// Set properties for the Pre Sub Gain Slider
+	subPreGainSlider.setSliderStyle(Slider::LinearVertical);
+	subPreGainSlider.setRange(0.0, 1.0, 0.01);
+	subPreGainSlider.setSliderSnapsToMousePosition(false);
+	subPreGainSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, 50);
+	subPreGainSlider.setTextValueSuffix(" Volume");
+	subPreGainSlider.addListener(this);
+	// Set properties for the Pre Sub Gain Label
+	subPreGainLabel.setText("Sub Pre Gain", NotificationType::dontSendNotification);
 
+	// Set properties for the Pre Sub Gain Slider
+	hpfFreqSlider.setSliderStyle(Slider::LinearVertical);
+	hpfFreqSlider.setRange(40, 220, 1);
+	hpfFreqSlider.setSliderSnapsToMousePosition(false);
+	hpfFreqSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, 50);
+	hpfFreqSlider.setTextValueSuffix(" Hz");
+	hpfFreqSlider.setSkewFactor(0.5);
+	hpfFreqSlider.addListener(this);
+	// Set properties for the Pre Sub Gain Label
+	hpfFreqLabel.setText("HPF Frequency", NotificationType::dontSendNotification);
+
+	// Set properties for the Pre Sub Gain Slider
+	lpfFreqSlider.setSliderStyle(Slider::LinearVertical);
+	lpfFreqSlider.setRange(60, 330, 1);
+	lpfFreqSlider.setSliderSnapsToMousePosition(false);
+	lpfFreqSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, 50);
+	lpfFreqSlider.setTextValueSuffix(" Hz");
+	lpfFreqSlider.setSkewFactor(0.5);
+	lpfFreqSlider.addListener(this);
+	// Set properties for the Pre Sub Gain Label
+	lpfFreqLabel.setText("LPF Frequency", NotificationType::dontSendNotification);
+
+	addAndMakeVisible(&masterBypassButton);
+	addAndMakeVisible(&soloSubButton);
 	addAndMakeVisible(&inputGainSlider);
 	addAndMakeVisible(&inputGainLabel);
 	addAndMakeVisible(&outputGainSlider);
 	addAndMakeVisible(&outputGainLabel);
-	addAndMakeVisible(&masterBypassButton);
+	addAndMakeVisible(&subPreGainSlider);
+	addAndMakeVisible(&subPreGainLabel);
+	addAndMakeVisible(&hpfFreqSlider);
+	addAndMakeVisible(&hpfFreqLabel);
+	addAndMakeVisible(&lpfFreqSlider);
+	addAndMakeVisible(&lpfFreqLabel);
 
 	startTimer(50);
 }
@@ -74,13 +116,20 @@ void PrototypeAudioProcessorEditor::resized()
 {
     // This is generally where you'll want to lay out the positions of any
     // subcomponents in your editor..
+	masterBypassButton.setBounds(150, 250, 100, 40);
+	soloSubButton.setBounds(350, 250, 100, 40);
+	
 	inputGainSlider.setBounds(50, 50, 50, 210);
 	inputGainLabel.setBounds(35, 40, 80, 15);
+	outputGainSlider.setBounds(450, 50, 50, 210);
+	outputGainLabel.setBounds(435, 40, 80, 15);
+	subPreGainSlider.setBounds(150, 50, 50, 210);
+	subPreGainLabel.setBounds(135, 40, 80, 15);
+	hpfFreqSlider.setBounds(250, 50, 50, 210);
+	hpfFreqLabel.setBounds(235, 40, 80, 15);
+	lpfFreqSlider.setBounds(350, 50, 50, 210);
+	lpfFreqLabel.setBounds(335, 40, 80, 15);
 
-	outputGainSlider.setBounds(500, 50, 50, 210);
-	outputGainLabel.setBounds(485, 40, 80, 15);
-
-	masterBypassButton.setBounds(250, 250, 100, 40);
 }
 
 //==============================================================================
@@ -88,6 +137,11 @@ void PrototypeAudioProcessorEditor::resized()
 void PrototypeAudioProcessorEditor::timerCallback() {
 	inputGainSlider.setValue(getProcessor().inputGain->getValue(), dontSendNotification);
 	outputGainSlider.setValue(getProcessor().outputGain->getValue(), dontSendNotification);
+	subPreGainSlider.setValue(getProcessor().subPreGain->getValue(), dontSendNotification);
+	hpfFreqSlider.setValue(getProcessor().hpfFreq->getValue(), dontSendNotification);
+	lpfFreqSlider.setValue(getProcessor().lpfFreq->getValue(), dontSendNotification);
+	masterBypassButton.setToggleState((bool)getProcessor().masterBypass->getValue(), dontSendNotification);
+	soloSubButton.setToggleState((bool)getProcessor().soloSub->getValue(), dontSendNotification);
 }
 
 //==============================================================================
@@ -136,10 +190,14 @@ void PrototypeAudioProcessorEditor::buttonClicked(Button* button)
 AudioProcessorParameter* PrototypeAudioProcessorEditor::getParameterFromSlider(const Slider* slider) const {
 	if (slider == &inputGainSlider) { return getProcessor().inputGain; }
 	if (slider == &outputGainSlider) { return getProcessor().outputGain; }
+	if (slider == &subPreGainSlider) { return getProcessor().subPreGain; }
+	if (slider == &hpfFreqSlider) { return getProcessor().hpfFreq; }
+	if (slider == &lpfFreqSlider) { return getProcessor().lpfFreq; }
 
 	return nullptr;
 }
 
 AudioProcessorParameter* PrototypeAudioProcessorEditor::getParameterFromButton(const Button* button) const {
 	if (button == &masterBypassButton) { return getProcessor().masterBypass; }
+	if (button == &soloSubButton) { return getProcessor().soloSub; }
 }

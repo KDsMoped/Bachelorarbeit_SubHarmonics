@@ -42,13 +42,23 @@ private:
     // access the processor object that created it.
     PrototypeAudioProcessor& processor;
 	*/
+	ToggleButton masterBypassButton;
+	ToggleButton soloSubButton;
+
 	Slider inputGainSlider;
 	Label inputGainLabel;
 
 	Slider outputGainSlider;
 	Label outputGainLabel;
 
-	ToggleButton masterBypassButton;
+	Slider subPreGainSlider;
+	Label subPreGainLabel;
+
+	Slider hpfFreqSlider;
+	Label hpfFreqLabel;
+
+	Slider lpfFreqSlider;
+	Label lpfFreqLabel;
 
 	//==============================================================================
 	PrototypeAudioProcessor& getProcessor() const

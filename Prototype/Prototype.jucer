@@ -11,13 +11,17 @@
               pluginAAXCategory="AAX_ePlugInCategory_Dynamics" jucerVersion="3.2.0">
   <MAINGROUP id="aNdWAu" name="Prototype">
     <GROUP id="{CCEF6AB6-74DA-68C0-F579-973F0B897589}" name="Source">
-      <FILE id="oTApEP" name="PluginProcessor.cpp" compile="1" resource="0"
-            file="Source/PluginProcessor.cpp"/>
       <FILE id="lPdENf" name="PluginProcessor.h" compile="0" resource="0"
             file="Source/PluginProcessor.h"/>
+      <FILE id="oTApEP" name="PluginProcessor.cpp" compile="1" resource="0"
+            file="Source/PluginProcessor.cpp"/>
+      <FILE id="Lu1qgo" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
       <FILE id="tyCmJC" name="PluginEditor.cpp" compile="1" resource="0"
             file="Source/PluginEditor.cpp"/>
-      <FILE id="Lu1qgo" name="PluginEditor.h" compile="0" resource="0" file="Source/PluginEditor.h"/>
+      <FILE id="B9bTEL" name="SignalProcessingHelpers.h" compile="0" resource="0"
+            file="Source/SignalProcessingHelpers.h"/>
+      <FILE id="C3qAW4" name="SignalProcessingHelpers.cpp" compile="1" resource="0"
+            file="Source/SignalProcessingHelpers.cpp"/>
     </GROUP>
   </MAINGROUP>
   <EXPORTFORMATS>

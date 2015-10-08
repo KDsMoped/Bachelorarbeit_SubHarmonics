@@ -12,6 +12,7 @@
 #define PLUGINPROCESSOR_H_INCLUDED
 
 #include "../JuceLibraryCode/JuceHeader.h"
+#include "SignalProcessingHelpers.h"
 
 
 //==============================================================================
@@ -69,11 +70,26 @@ public:
 
 	//==============================================================================
 	// List of Parameters
+	AudioProcessorParameter* masterBypass;
 	AudioProcessorParameter* inputGain;
 	AudioProcessorParameter* outputGain;
-	AudioProcessorParameter* masterBypass;
+	AudioProcessorParameter* subPreGain;
+	AudioProcessorParameter* hpfFreq;
+	AudioProcessorParameter* lpfFreq;
+	AudioProcessorParameter* soloSub;
 
 private:
+	//==============================================================================
+	BiquadFilter *biquadPreSubHPF;
+	BiquadFilter *biquadPreSubLPF;
+	BiquadFilter *biquadSmoothingFilter;
+	BiquadFilter *biquadPostSubLPF;
+
+
+	int sign;
+	int schmittTriggerSatus;
+	int triggerChangeCount;
+
 	//==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PrototypeAudioProcessor)
 };
