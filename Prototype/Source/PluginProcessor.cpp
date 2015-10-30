@@ -65,18 +65,17 @@ const float defaultMasterBypass = 0.f;
 const float defaultSoloSub = 0.f;
 const float defaultInputGain = 0.5f;
 const float defaultOutputGain = 0.5f;
-const float defaultSubPreGain = 0.f;
-const float defaultHpfFreq = 84.f;
-const float defaultLpfFreq = 126.f;
+const float defaultSubPreGain = 1.f;
+const float defaultHpfFreq = 900;// 84.f;
+const float defaultLpfFreq = 1100;// 126.f;
 
 //==============================================================================
 PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder4)),
 													 biquadPreSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder4)),
 													 biquadSmoothingFilter(new BiquadFilter(filterTypeLowPass, filterOrder6)),
 													 biquadPostSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder4)),
-													 sign(1),
 													 triggerChangeCount(0),
-													 schmittTriggerSatus(1)
+													 schmittTriggerStatus(1)
 													 {
 	// Set up our parameters. The base class will delete them for us.
 	addParameter(masterBypass = new FloatParameter(defaultMasterBypass, 2, "Master Bypass"));
@@ -202,7 +201,13 @@ void PrototypeAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     // initialisation that you need..
 
 	// Calculate static filter coefficients
-	biquadSmoothingFilter->setFilterCoeffs(getSampleRate(), 500, 1);
+	biquadSmoothingFilter->setFilterCoeffs(getSampleRate(), 10, 0.77);
+	biquadPostSubLPF->setFilterCoeffs(getSampleRate(), 400, 0.77);
+	
+	for (int ch = 0; ch<getNumInputChannels(); ch++) {
+		vc[ch] = 0;
+		sign[ch] = 1;
+	}
 
 	// Clearing buffers
 }
@@ -217,7 +222,16 @@ void PrototypeAudioProcessor::reset()
 {
 	// Use this method as the place to clear any delay lines, buffers, etc, as it
 	// means there's been a break in the audio's continuity.
-
+	
+	// Reset envelope detector capacitor voltage
+	for (int ch = 0; ch<getNumInputChannels(); ch++) { 
+		vc[ch] = 0; 
+		sign[ch] = 1;
+	}
+	
+	triggerChangeCount = 0;
+	schmittTriggerStatus = 0;
+	
 	// Clearing buffers
 
 }
@@ -251,58 +265,83 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 				effectBufferedSample *= subPreGain->getValue();
 
 				// Forking effect signal paths
-				float rectifierBufferedSample = drySignalBufferedSample;
+				float rectifierBufferedSample = effectBufferedSample;
 				float triggerBufferedSample = effectBufferedSample;
 
-				// TODO: Full Wave Rectifier / Envelope Detector
-				rectifierBufferedSample = abs(rectifierBufferedSample);
-				biquadSmoothingFilter->processFilter(&rectifierBufferedSample, ch);
+				
+				//Envelope Detector
+				double dt = 1. / getSampleRate();
+				float rc = 100.e-3; // X ms release time
+				double coeff = rc / (rc + dt);
+
+				rectifierBufferedSample = vc[ch];
+				double y = effectBufferedSample;
+				double rect = fabs(y); // Rectifier(diodes)
+				vc[ch] = (rect>vc[ch] ? rect : coeff*vc[ch]);
+				
 
 				// Summing Unit
 				effectBufferedSample = (effectBufferedSample + rectifierBufferedSample);
-				//effectBufferedSample = (effectBufferedSample + 1);
+				if (effectBufferedSample <= 0) {
+					effectBufferedSample = 0;
+				}
+
 
 				// TODO: Square Root Extractor
 				effectBufferedSample = sqrt(effectBufferedSample);
-
+				
+				
 				// TODO: Signal Conditioner
 				// Pre Sub HPF
-				biquadPreSubHPF->setFilterCoeffs(getSampleRate(), hpfFreq->getValue(), 1);
+				biquadPreSubHPF->setFilterCoeffs(getSampleRate(), hpfFreq->getValue(), 0.77);
 				biquadPreSubHPF->processFilter(&triggerBufferedSample, ch);
-
+				
 				// Pre Sub LPF
-				biquadPreSubLPF->setFilterCoeffs(getSampleRate(), lpfFreq->getValue(), 1);
+				biquadPreSubLPF->setFilterCoeffs(getSampleRate(), lpfFreq->getValue(), 0.77);
 				biquadPreSubLPF->processFilter(&triggerBufferedSample, ch);
+				
 				
 				// Trigger Circuit
 				// Schmitt-Trigger
-				if (triggerBufferedSample > 0.f)
-					if (schmittTriggerSatus = 0)
+				float posHyst = 0.2f;
+				float negHyst = posHyst * -1;
+				
+				if (i == 0) {
+					if (triggerBufferedSample > 0.f) { schmittTriggerStatus = 1; }
+					else { schmittTriggerStatus = 0; }
+				}
+
+				if (triggerBufferedSample > posHyst)
+					if (schmittTriggerStatus == 0)
 					{
-						schmittTriggerSatus = 1;
+						schmittTriggerStatus = 1;
 						triggerChangeCount++;
 					}
-				if (triggerBufferedSample < 0.f)
-					if (schmittTriggerSatus = 1)
+				if (triggerBufferedSample < negHyst)
+					if (schmittTriggerStatus == 1)
 					{
-						schmittTriggerSatus = 0;
+						schmittTriggerStatus = 0;
 						triggerChangeCount++;
 					}
 
 				// TODO: Counter
 				if (triggerChangeCount == 2) {
-					sign *= -1;
+					sign[ch] *= -1;
 					triggerChangeCount = 0;
 				}
 
 				// TODO: Variable Amplifier
-				effectBufferedSample *= sign;
+				effectBufferedSample *= sign[ch];
 
 				// TODO: Post Filter
-
+				biquadPostSubLPF->processFilter(&effectBufferedSample, ch);
 
 				// TODO: Mixing Amplifier
-				channelData[i] = (effectBufferedSample + drySignalBufferedSample) / 2;
+				//channelData[i] = (effectBufferedSample + drySignalBufferedSample) / 2;
+				
+
+				channelData[i] = effectBufferedSample;
+					
 
 				// Apply Output Gain
 				channelData[i] *= outputGain->getValue();

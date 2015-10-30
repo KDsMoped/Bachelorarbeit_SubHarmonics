@@ -85,9 +85,9 @@ private:
 	BiquadFilter *biquadSmoothingFilter;
 	BiquadFilter *biquadPostSubLPF;
 
-
-	int sign;
-	int schmittTriggerSatus;
+	float vc[2];
+	int sign[2];
+	int schmittTriggerStatus;
 	int triggerChangeCount;
 
 	//==============================================================================
