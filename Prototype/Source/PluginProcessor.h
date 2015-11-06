@@ -88,7 +88,7 @@ private:
 	float vc[2];
 	int sign[2];
 	int schmittTriggerStatus;
-	int triggerChangeCount;
+	int triggerChangeCount[2];
 
 	//==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PrototypeAudioProcessor)

@@ -74,7 +74,6 @@ PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadF
 													 biquadPreSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder4)),
 													 biquadSmoothingFilter(new BiquadFilter(filterTypeLowPass, filterOrder6)),
 													 biquadPostSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder4)),
-													 triggerChangeCount(0),
 													 schmittTriggerStatus(1)
 													 {
 	// Set up our parameters. The base class will delete them for us.
@@ -206,6 +205,7 @@ void PrototypeAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
 	
 	for (int ch = 0; ch<getNumInputChannels(); ch++) {
 		vc[ch] = 0;
+		triggerChangeCount[ch] = 0;
 		sign[ch] = 1;
 	}
 
@@ -226,10 +226,10 @@ void PrototypeAudioProcessor::reset()
 	// Reset envelope detector capacitor voltage
 	for (int ch = 0; ch<getNumInputChannels(); ch++) { 
 		vc[ch] = 0; 
+		triggerChangeCount[ch] = 0 ;
 		sign[ch] = 1;
 	}
 	
-	triggerChangeCount = 0;
 	schmittTriggerStatus = 0;
 	
 	// Clearing buffers
@@ -255,14 +255,14 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			// Check if bypassed
 			if (masterBypass->getValue() == 0) {
 				// Apply Input Gain
-				channelData[i] *= inputGain->getValue();
+				//channelData[i] *= inputGain->getValue();
 
 				// Store current sample value in buffers for the various signal paths
 				float drySignalBufferedSample = channelData[i];
 				float effectBufferedSample = channelData[i];
 				
 				// Applay Sub Pre Gain
-				effectBufferedSample *= subPreGain->getValue();
+				//effectBufferedSample *= subPreGain->getValue();
 
 				// Forking effect signal paths
 				float rectifierBufferedSample = effectBufferedSample;
@@ -278,20 +278,20 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 				double y = effectBufferedSample;
 				double rect = fabs(y); // Rectifier(diodes)
 				vc[ch] = (rect>vc[ch] ? rect : coeff*vc[ch]);
-				
+
 
 				// Summing Unit
 				effectBufferedSample = (effectBufferedSample + rectifierBufferedSample);
-				if (effectBufferedSample <= 0) {
-					effectBufferedSample = 0;
+
+
+				// Square Root Extractor
+				if (effectBufferedSample < 0) {
+					effectBufferedSample = 0.f;
 				}
-
-
-				// TODO: Square Root Extractor
 				effectBufferedSample = sqrt(effectBufferedSample);
 				
-				
-				// TODO: Signal Conditioner
+				/*
+				// TODO: Signal Conditioning
 				// Pre Sub HPF
 				biquadPreSubHPF->setFilterCoeffs(getSampleRate(), hpfFreq->getValue(), 0.77);
 				biquadPreSubHPF->processFilter(&triggerBufferedSample, ch);
@@ -299,49 +299,50 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 				// Pre Sub LPF
 				biquadPreSubLPF->setFilterCoeffs(getSampleRate(), lpfFreq->getValue(), 0.77);
 				biquadPreSubLPF->processFilter(&triggerBufferedSample, ch);
-				
+				*/
 				
 				// Trigger Circuit
 				// Schmitt-Trigger
-				float posHyst = 0.2f;
+				float posHyst = 0.0f;
 				float negHyst = posHyst * -1;
 				
-				if (i == 0) {
+				
+				if (i == 0) { 
 					if (triggerBufferedSample > 0.f) { schmittTriggerStatus = 1; }
 					else { schmittTriggerStatus = 0; }
 				}
-
-				if (triggerBufferedSample > posHyst)
-					if (schmittTriggerStatus == 0)
-					{
+				
+				if (triggerBufferedSample > posHyst) {
+					if (schmittTriggerStatus == 0) {
 						schmittTriggerStatus = 1;
-						triggerChangeCount++;
+						triggerChangeCount[ch]++;
 					}
-				if (triggerBufferedSample < negHyst)
-					if (schmittTriggerStatus == 1)
-					{
+				}
+				if (triggerBufferedSample < negHyst) {
+					if (schmittTriggerStatus == 1) {
 						schmittTriggerStatus = 0;
-						triggerChangeCount++;
+						triggerChangeCount[ch]++;
 					}
-
+				}
+				
 				// TODO: Counter
-				if (triggerChangeCount == 2) {
+				if (triggerChangeCount[ch] == 2) {
 					sign[ch] *= -1;
-					triggerChangeCount = 0;
+					triggerChangeCount[ch] = 0;
 				}
 
 				// TODO: Variable Amplifier
 				effectBufferedSample *= sign[ch];
-
+				
 				// TODO: Post Filter
-				biquadPostSubLPF->processFilter(&effectBufferedSample, ch);
-
+				//biquadPostSubLPF->processFilter(&effectBufferedSample, ch);
+				
 				// TODO: Mixing Amplifier
 				//channelData[i] = (effectBufferedSample + drySignalBufferedSample) / 2;
 				
 
 				channelData[i] = effectBufferedSample;
-					
+
 
 				// Apply Output Gain
 				channelData[i] *= outputGain->getValue();
