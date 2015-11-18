@@ -73,8 +73,7 @@ const float defaultLpfFreq = 1100;// 126.f;
 PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder4)),
 													 biquadPreSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder4)),
 													 biquadSmoothingFilter(new BiquadFilter(filterTypeLowPass, filterOrder6)),
-													 biquadPostSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder4)),
-													 schmittTriggerStatus(1)
+													 biquadPostSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder4))
 													 {
 	// Set up our parameters. The base class will delete them for us.
 	addParameter(masterBypass = new FloatParameter(defaultMasterBypass, 2, "Master Bypass"));
@@ -203,11 +202,13 @@ void PrototypeAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
 	biquadSmoothingFilter->setFilterCoeffs(getSampleRate(), 10, 0.77);
 	biquadPostSubLPF->setFilterCoeffs(getSampleRate(), 400, 0.77);
 	
-	for (int ch = 0; ch<getNumInputChannels(); ch++) {
-		vc[ch] = 0;
-		triggerChangeCount[ch] = 0;
-		sign[ch] = 1;
-	}
+	// Reset envelope detector capacitor voltage
+	vc = 0;
+
+	triggerChangeCount = 0;
+	sign = 1;
+	schmittTriggerStatus = 0;
+	yk1 = 0;
 
 	// Clearing buffers
 }
@@ -224,13 +225,12 @@ void PrototypeAudioProcessor::reset()
 	// means there's been a break in the audio's continuity.
 	
 	// Reset envelope detector capacitor voltage
-	for (int ch = 0; ch<getNumInputChannels(); ch++) { 
-		vc[ch] = 0; 
-		triggerChangeCount[ch] = 0 ;
-		sign[ch] = 1;
-	}
-	
+	vc = 0;
+
+	triggerChangeCount = 0;
+	sign = 1;
 	schmittTriggerStatus = 0;
+	yk1 = 0;
 	
 	// Clearing buffers
 
@@ -245,113 +245,149 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 		buffer.clear(i, 0, numSamples);
 	}
 
+
+	float monoData[4096];
+
+	for (int i = 0; i < getBlockSize(); i++) {
+		monoData[i] = 0;
+	}
+
     // This is the place where you'd normally do the guts of your plugin's
     // audio processing...
-    for(int ch=0; ch < getNumInputChannels(); ++ch) {
-        // Retrieve pointers to modify each buffers channel data
+	
+	for (int ch = 0; ch < getNumInputChannels(); ++ch) {
+		// Retrieve pointers to modify each buffers channel data
+		float* channelData = buffer.getWritePointer(ch);
+		
+		for (int i = 0; i < getBlockSize(); i++) {
+			// Check if bypassed
+			if (masterBypass->getValue() == 0) {
+				// Apply Input Gain
+				channelData[i] *= inputGain->getValue();
+			
+				// Mono Sum
+				monoData[i] += (channelData[i] / 2);
+			}
+		}
+	}
+				
+
+	for (int i = 0; i < getBlockSize(); i++) {
+		// Check if bypassed
+		if (masterBypass->getValue() == 0) {
+			// Store current sample value in buffers for the various signal paths
+			float drySignalBufferedSample = monoData[i];
+			float effectBufferedSample = monoData[i];
+
+			// Applay Sub Pre Gain
+			//effectBufferedSample *= subPreGain->getValue();
+
+			// Forking effect signal paths
+			float rectifierBufferedSample = effectBufferedSample;
+			float triggerBufferedSample = effectBufferedSample;
+
+
+			//Envelope Detector
+			double dt = 1. / getSampleRate();
+			float rc = 100.e-3; // X ms release time
+			double coeff = rc / (rc + dt);
+
+			rectifierBufferedSample = vc;
+			double y = effectBufferedSample;
+			double rect = fabs(y); // Rectifier(diodes)
+			vc = (rect > vc ? rect : coeff*vc);
+
+
+			// Summing Unit
+			effectBufferedSample = (effectBufferedSample + rectifierBufferedSample);
+
+			// Square Root Extractor
+			if (effectBufferedSample < 0) {
+				effectBufferedSample = 0.f;
+			}
+			effectBufferedSample = sqrt(effectBufferedSample);
+
+			/*
+			// TODO: Signal Conditioning
+			// Pre Sub HPF
+			biquadPreSubHPF->setFilterCoeffs(getSampleRate(), hpfFreq->getValue(), 0.77);
+			biquadPreSubHPF->processFilter(&triggerBufferedSample, ch);
+
+			// Pre Sub LPF
+			biquadPreSubLPF->setFilterCoeffs(getSampleRate(), lpfFreq->getValue(), 0.77);
+			biquadPreSubLPF->processFilter(&triggerBufferedSample, ch);
+			*/
+
+			// First Order Lowpass Filter to shift the signal by 90°
+			float f0 = 200;
+			float tau = 1 / (2 * M_PI * f0);
+			float c = tau / dt;
+			float xk = triggerBufferedSample;
+			float yk = (1. / (1. + c)) * (xk + (c * yk1));
+			yk1 = yk;
+			triggerBufferedSample = yk;
+
+
+			// Trigger Circuit
+			// Schmitt-Trigger
+			float posHyst = .0f;
+			float negHyst = posHyst * -1;
+
+			/*
+			if (i == 0) {
+			if (triggerBufferedSample > 0.f) { schmittTriggerStatus = 1; }
+			else { schmittTriggerStatus = 0; }
+			}
+			*/
+			if (triggerBufferedSample > posHyst) {
+				if (schmittTriggerStatus == 0) {
+					schmittTriggerStatus = 1;
+					triggerChangeCount++;
+				}
+			}
+			if (triggerBufferedSample < negHyst) {
+				if (schmittTriggerStatus == 1) {
+					schmittTriggerStatus = 0;
+					triggerChangeCount++;
+				}
+			}
+
+			// TODO: Counter
+			if (triggerChangeCount == 2) {
+				sign *= -1;
+				triggerChangeCount = 0;
+			}
+
+			// TODO: Variable Amplifier
+			effectBufferedSample *= sign;
+
+			// TODO: Post Filter
+			biquadPostSubLPF->processFilter(&effectBufferedSample, 0);
+
+			// TODO: Mixing Amplifier
+			//channelData[i] = (effectBufferedSample + drySignalBufferedSample) / 2;
+
+
+			//channelData[i] = (ch == 0 ? triggerBufferedSample:effectBufferedSample);
+			monoData[i] = effectBufferedSample;
+		}
+	}
+
+	for (int ch = 0; ch < getNumInputChannels(); ++ch) {
+		// Retrieve pointers to modify each buffers channel data
 		float* channelData = buffer.getWritePointer(ch);
 
 		for (int i = 0; i < getBlockSize(); i++) {
 			// Check if bypassed
 			if (masterBypass->getValue() == 0) {
-				// Apply Input Gain
-				//channelData[i] *= inputGain->getValue();
-
-				// Store current sample value in buffers for the various signal paths
-				float drySignalBufferedSample = channelData[i];
-				float effectBufferedSample = channelData[i];
-				
-				// Applay Sub Pre Gain
-				//effectBufferedSample *= subPreGain->getValue();
-
-				// Forking effect signal paths
-				float rectifierBufferedSample = effectBufferedSample;
-				float triggerBufferedSample = effectBufferedSample;
-
-				
-				//Envelope Detector
-				double dt = 1. / getSampleRate();
-				float rc = 100.e-3; // X ms release time
-				double coeff = rc / (rc + dt);
-
-				rectifierBufferedSample = vc[ch];
-				double y = effectBufferedSample;
-				double rect = fabs(y); // Rectifier(diodes)
-				vc[ch] = (rect>vc[ch] ? rect : coeff*vc[ch]);
-
-
-				// Summing Unit
-				effectBufferedSample = (effectBufferedSample + rectifierBufferedSample);
-
-
-				// Square Root Extractor
-				if (effectBufferedSample < 0) {
-					effectBufferedSample = 0.f;
-				}
-				effectBufferedSample = sqrt(effectBufferedSample);
-				
-				/*
-				// TODO: Signal Conditioning
-				// Pre Sub HPF
-				biquadPreSubHPF->setFilterCoeffs(getSampleRate(), hpfFreq->getValue(), 0.77);
-				biquadPreSubHPF->processFilter(&triggerBufferedSample, ch);
-				
-				// Pre Sub LPF
-				biquadPreSubLPF->setFilterCoeffs(getSampleRate(), lpfFreq->getValue(), 0.77);
-				biquadPreSubLPF->processFilter(&triggerBufferedSample, ch);
-				*/
-				
-				// Trigger Circuit
-				// Schmitt-Trigger
-				float posHyst = 0.0f;
-				float negHyst = posHyst * -1;
-				
-				
-				if (i == 0) { 
-					if (triggerBufferedSample > 0.f) { schmittTriggerStatus = 1; }
-					else { schmittTriggerStatus = 0; }
-				}
-				
-				if (triggerBufferedSample > posHyst) {
-					if (schmittTriggerStatus == 0) {
-						schmittTriggerStatus = 1;
-						triggerChangeCount[ch]++;
-					}
-				}
-				if (triggerBufferedSample < negHyst) {
-					if (schmittTriggerStatus == 1) {
-						schmittTriggerStatus = 0;
-						triggerChangeCount[ch]++;
-					}
-				}
-				
-				// TODO: Counter
-				if (triggerChangeCount[ch] == 2) {
-					sign[ch] *= -1;
-					triggerChangeCount[ch] = 0;
-				}
-
-				// TODO: Variable Amplifier
-				effectBufferedSample *= sign[ch];
-				
-				// TODO: Post Filter
-				//biquadPostSubLPF->processFilter(&effectBufferedSample, ch);
-				
-				// TODO: Mixing Amplifier
-				//channelData[i] = (effectBufferedSample + drySignalBufferedSample) / 2;
-				
-
-				channelData[i] = effectBufferedSample;
-
-
 				// Apply Output Gain
-				channelData[i] *= outputGain->getValue();
+				channelData[i] = outputGain->getValue() * monoData[i];
 			}
 			else {
 				// TODO: Apply Latency...
 			}
 		}
-    }
+	}
 }
 
 //==============================================================================

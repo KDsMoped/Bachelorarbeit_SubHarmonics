@@ -14,6 +14,9 @@
 #include "../JuceLibraryCode/JuceHeader.h"
 #include "SignalProcessingHelpers.h"
 
+#ifndef M_PI
+#define M_PI    3.14159265358979323846f
+#endif
 
 //==============================================================================
 /**
@@ -85,10 +88,11 @@ private:
 	BiquadFilter *biquadSmoothingFilter;
 	BiquadFilter *biquadPostSubLPF;
 
-	float vc[2];
-	int sign[2];
+	float vc;
+	int sign;
 	int schmittTriggerStatus;
-	int triggerChangeCount[2];
+	int triggerChangeCount;
+	float yk1;
 
 	//==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PrototypeAudioProcessor)
