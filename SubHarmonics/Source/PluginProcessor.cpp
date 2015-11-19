@@ -404,15 +404,47 @@ AudioProcessorEditor* PrototypeAudioProcessor::createEditor()
 //==============================================================================
 void PrototypeAudioProcessor::getStateInformation (MemoryBlock& destData)
 {
-    // You should use this method to store your parameters in the memory block.
-    // You could do that either as raw data, or use the XML or ValueTree classes
-    // as intermediaries to make it easy to save and load complex data.
+	// You should use this method to store your parameters in the memory block.
+	
+	// Create an outer XML element..
+	XmlElement xml("MYPLUGINSETTINGS");
+
+	// add some attributes to it..
+	xml.setAttribute("master_bypass", masterBypass->getValue());
+	xml.setAttribute("solo_sub", soloSub->getValue());
+	xml.setAttribute("input_gain", inputGain->getValue());
+	xml.setAttribute("output_gain", outputGain->getValue());
+	xml.setAttribute("sub_pre_gain", subPreGain->getValue());
+	xml.setAttribute("hpf_frequency", hpfFreq->getValue());
+	xml.setAttribute("lpf_frequency", lpfFreq->getValue());
+
+	// then use this helper function to stuff it into the binary blob and return it..
+	copyXmlToBinary(xml, destData);
 }
 
 void PrototypeAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
+
+	// This getXmlFromBinary() helper function retrieves our XML from the binary blob..
+	ScopedPointer<XmlElement> xmlState(getXmlFromBinary(data, sizeInBytes));
+
+	if (xmlState != nullptr)
+	{
+		// make sure that it's actually our type of XML object..
+		if (xmlState->hasTagName("MYPLUGINSETTINGS"))
+		{
+			// ok, now pull out our parameters..
+			masterBypass->setValue((float)xmlState->getDoubleAttribute("master_bypass", masterBypass->getValue()));
+			soloSub->setValue((float)xmlState->getDoubleAttribute("solo_sub", soloSub->getValue()));
+			inputGain->setValue((float)xmlState->getDoubleAttribute("input_gain", inputGain->getValue()));
+			outputGain->setValue((float)xmlState->getDoubleAttribute("output_gain", outputGain->getValue()));
+			subPreGain->setValue((float)xmlState->getDoubleAttribute("sub_pre_gain", subPreGain->getValue()));
+			hpfFreq->setValue((float)xmlState->getDoubleAttribute("hpf_frequency", hpfFreq->getValue()));
+			lpfFreq->setValue((float)xmlState->getDoubleAttribute("lpf_frequency", lpfFreq->getValue()));
+		}
+	}
 }
 
 //==============================================================================
