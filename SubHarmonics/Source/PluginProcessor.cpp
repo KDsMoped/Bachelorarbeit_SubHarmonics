@@ -199,7 +199,6 @@ void PrototypeAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     // initialisation that you need..
 
 	// Calculate static filter coefficients
-	biquadSmoothingFilter->setFilterCoeffs(getSampleRate(), 10, 0.77);
 	biquadPostSubLPF->setFilterCoeffs(getSampleRate(), 400, 0.77);
 	
 	// Reset envelope detector capacitor voltage
@@ -333,8 +332,8 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 
 			/*
 			if (i == 0) {
-			if (triggerBufferedSample > 0.f) { schmittTriggerStatus = 1; }
-			else { schmittTriggerStatus = 0; }
+				if (triggerBufferedSample > 0.f) { schmittTriggerStatus = 1; }
+				else { schmittTriggerStatus = 0; }
 			}
 			*/
 			if (triggerBufferedSample > posHyst) {
