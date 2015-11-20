@@ -70,10 +70,10 @@ const float defaultHpfFreq = 900;// 84.f;
 const float defaultLpfFreq = 1100;// 126.f;
 
 //==============================================================================
-PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder4)),
-													 biquadPreSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder4)),
+PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder6)),
+													 biquadPreSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder6)),
 													 biquadSmoothingFilter(new BiquadFilter(filterTypeLowPass, filterOrder6)),
-													 biquadPostSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder4))
+													 biquadPostSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder6))
 													 {
 	// Set up our parameters. The base class will delete them for us.
 	addParameter(masterBypass = new FloatParameter(defaultMasterBypass, 2, "Master Bypass"));
@@ -264,7 +264,6 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			if (masterBypass->getValue() == 0) {
 				// Apply Input Gain
 				channelData[i] *= inputGain->getValue();
-			
 				// Mono Sum
 				monoData[i] += (channelData[i] / 2);
 			}
@@ -276,11 +275,10 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 		// Check if bypassed
 		if (masterBypass->getValue() == 0) {
 			// Store current sample value in buffers for the various signal paths
-			float drySignalBufferedSample = monoData[i];
 			float effectBufferedSample = monoData[i];
 
 			// Applay Sub Pre Gain
-			//effectBufferedSample *= subPreGain->getValue();
+			effectBufferedSample *= (subPreGain->getValue() * 2);
 
 			// Forking effect signal paths
 			float rectifierBufferedSample = effectBufferedSample;
@@ -307,30 +305,30 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			}
 			effectBufferedSample = sqrt(effectBufferedSample);
 
-			/*
+			
 			// TODO: Signal Conditioning
 			// Pre Sub HPF
-			biquadPreSubHPF->setFilterCoeffs(getSampleRate(), hpfFreq->getValue(), 0.77);
-			biquadPreSubHPF->processFilter(&triggerBufferedSample, ch);
+			biquadPreSubHPF->setFilterCoeffs(getSampleRate(), hpfFreq->getValue(), 0.5);
+			biquadPreSubHPF->processFilter(&triggerBufferedSample, 0);
 
 			// Pre Sub LPF
-			biquadPreSubLPF->setFilterCoeffs(getSampleRate(), lpfFreq->getValue(), 0.77);
-			biquadPreSubLPF->processFilter(&triggerBufferedSample, ch);
-			*/
-
+			biquadPreSubLPF->setFilterCoeffs(getSampleRate(), lpfFreq->getValue(), 0.5);
+			biquadPreSubLPF->processFilter(&triggerBufferedSample, 0);
+			
+			
 			// First Order Lowpass Filter to shift the signal by 90°
-			float f0 = 200;
+			float f0 = hpfFreq->getValue();
 			float tau = 1 / (2 * M_PI * f0);
 			float c = tau / dt;
 			float xk = triggerBufferedSample;
 			float yk = (1. / (1. + c)) * (xk + (c * yk1));
 			yk1 = yk;
 			triggerBufferedSample = yk;
-
+			
 
 			// Trigger Circuit
 			// Schmitt-Trigger
-			float posHyst = .0f;
+			float posHyst = .01f;
 			float negHyst = posHyst * -1;
 
 			/*
@@ -364,10 +362,6 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			// TODO: Post Filter
 			biquadPostSubLPF->processFilter(&effectBufferedSample, 0);
 
-			// TODO: Mixing Amplifier
-			//channelData[i] = (effectBufferedSample + drySignalBufferedSample) / 2;
-
-
 			//channelData[i] = (ch == 0 ? triggerBufferedSample:effectBufferedSample);
 			monoData[i] = effectBufferedSample;
 		}
@@ -380,8 +374,17 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 		for (int i = 0; i < getBlockSize(); i++) {
 			// Check if bypassed
 			if (masterBypass->getValue() == 0) {
+				
+				if (soloSub->getValue() == 1) {
+					channelData[i] = monoData[i];
+				}
+				else {
+					 //TODO: Mixing Amplifier
+					channelData[i] = (channelData[i] + monoData[i]) / 2;
+				}
+				
 				// Apply Output Gain
-				channelData[i] = outputGain->getValue() * monoData[i];
+				channelData[i] *= outputGain->getValue();
 			}
 			else {
 				// TODO: Apply Latency...
