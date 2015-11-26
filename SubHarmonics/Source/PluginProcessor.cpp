@@ -208,7 +208,7 @@ void PrototypeAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
 
 	triggerChangeCount = 0;
 	sign = 1;
-	signumGain = 1;
+	signumGain = 1.f;
 	schmittTriggerStatus = 0;
 	yk1 = 0;
 
@@ -351,16 +351,17 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			// TODO: Counter
 			if (triggerChangeCount == 2) {
 				sign *= -1;
-				ramper->setTarget((sign * -1), sign, 44); // 1 sec in 44,1kHz
+				ramper->setTarget(signumGain, sign, 44); // 1 sec in 44,1kHz
 				triggerChangeCount = 0;
 			}
 
 			// TODO: Variable Amplifier
 			ramper->ramp(signumGain);
+			if (signumGain > 1.f) { signumGain = 1.f; }
 			effectBufferedSample *= signumGain;
 
 			// TODO: Post Filter
-			//biquadPostSubLPF->processFilter(&effectBufferedSample, 0);
+			biquadPostSubLPF->processFilter(&effectBufferedSample, 0);
 
 			//channelData[i] = (ch == 0 ? triggerBufferedSample:effectBufferedSample);
 			monoData[i] = effectBufferedSample;
