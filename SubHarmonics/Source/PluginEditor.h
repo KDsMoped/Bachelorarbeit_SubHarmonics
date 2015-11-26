@@ -60,6 +60,9 @@ private:
 	Slider lpfFreqSlider;
 	Label lpfFreqLabel;
 
+	Slider hystSlider;
+	Label hystLabel;
+
 	//==============================================================================
 	PrototypeAudioProcessor& getProcessor() const
 	{

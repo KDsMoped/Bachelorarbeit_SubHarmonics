@@ -68,11 +68,12 @@ const float defaultOutputGain = 0.5f;
 const float defaultSubPreGain = 1.f;
 const float defaultHpfFreq = 900;// 84.f;
 const float defaultLpfFreq = 1100;// 126.f;
+const float defaultHyst = 0.025f;
 
 //==============================================================================
 PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder6)),
 													 biquadPreSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder6)),
-													 biquadSmoothingFilter(new BiquadFilter(filterTypeLowPass, filterOrder6)),
+													 //biquadSmoothingFilter(new BiquadFilter(filterTypeLowPass, filterOrder6)),
 													 biquadPostSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder6))
 													 {
 	// Set up our parameters. The base class will delete them for us.
@@ -83,6 +84,7 @@ PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadF
 	addParameter(subPreGain = new FloatParameter(defaultSubPreGain, 0, "Sub Pre Gain"));
 	addParameter(hpfFreq = new FloatParameter(defaultHpfFreq, 0, "HPF Frequency"));
 	addParameter(lpfFreq = new FloatParameter(defaultLpfFreq, 0, "LPF Frequency"));
+	addParameter(hyst = new FloatParameter(defaultHyst, 0, "Hysteresis"));
 }
 
 PrototypeAudioProcessor::~PrototypeAudioProcessor() {
@@ -206,8 +208,11 @@ void PrototypeAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
 
 	triggerChangeCount = 0;
 	sign = 1;
+	signumGain = 1;
 	schmittTriggerStatus = 0;
 	yk1 = 0;
+
+	ramper = new Ramper();
 
 	// Clearing buffers
 }
@@ -262,7 +267,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			// Check if bypassed
 			if (masterBypass->getValue() == 0) {
 				// Apply Input Gain
-				channelData[i] *= inputGain->getValue();
+				channelData[i] *= (inputGain->getValue() * 2);
 				// Mono Sum
 				monoData[i] += (channelData[i] / 2);
 			}
@@ -307,14 +312,14 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			
 			// TODO: Signal Conditioning
 			// Pre Sub HPF
-			biquadPreSubHPF->setFilterCoeffs(getSampleRate(), hpfFreq->getValue(), 0.5);
+			biquadPreSubHPF->setFilterCoeffs(getSampleRate(), hpfFreq->getValue(), 0.71);
 			biquadPreSubHPF->processFilter(&triggerBufferedSample, 0);
 
 			// Pre Sub LPF
-			biquadPreSubLPF->setFilterCoeffs(getSampleRate(), lpfFreq->getValue(), 0.5);
+			biquadPreSubLPF->setFilterCoeffs(getSampleRate(), lpfFreq->getValue(), 0.71);
 			biquadPreSubLPF->processFilter(&triggerBufferedSample, 0);
 			
-			
+			/*
 			// First Order Lowpass Filter to shift the signal by 90°
 			float f0 = hpfFreq->getValue();
 			float tau = 1 / (2 * M_PI * f0);
@@ -323,19 +328,13 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			float yk = (1. / (1. + c)) * (xk + (c * yk1));
 			yk1 = yk;
 			triggerBufferedSample = yk;
-			
+			*/
 
 			// Trigger Circuit
 			// Schmitt-Trigger
-			float posHyst = .01f;
+			float posHyst = hyst->getValue();
 			float negHyst = posHyst * -1;
 
-			/*
-			if (i == 0) {
-				if (triggerBufferedSample > 0.f) { schmittTriggerStatus = 1; }
-				else { schmittTriggerStatus = 0; }
-			}
-			*/
 			if (triggerBufferedSample > posHyst) {
 				if (schmittTriggerStatus == 0) {
 					schmittTriggerStatus = 1;
@@ -352,14 +351,16 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			// TODO: Counter
 			if (triggerChangeCount == 2) {
 				sign *= -1;
+				ramper->setTarget((sign * -1), sign, 44); // 1 sec in 44,1kHz
 				triggerChangeCount = 0;
 			}
 
 			// TODO: Variable Amplifier
-			effectBufferedSample *= sign;
+			ramper->ramp(signumGain);
+			effectBufferedSample *= signumGain;
 
 			// TODO: Post Filter
-			biquadPostSubLPF->processFilter(&effectBufferedSample, 0);
+			//biquadPostSubLPF->processFilter(&effectBufferedSample, 0);
 
 			//channelData[i] = (ch == 0 ? triggerBufferedSample:effectBufferedSample);
 			monoData[i] = effectBufferedSample;

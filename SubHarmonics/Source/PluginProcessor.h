@@ -73,13 +73,14 @@ public:
 
 	//==============================================================================
 	// List of Parameters
-	AudioProcessorParameter* masterBypass;
-	AudioProcessorParameter* inputGain;
-	AudioProcessorParameter* outputGain;
-	AudioProcessorParameter* subPreGain;
-	AudioProcessorParameter* hpfFreq;
-	AudioProcessorParameter* lpfFreq;
-	AudioProcessorParameter* soloSub;
+	AudioProcessorParameter *masterBypass;
+	AudioProcessorParameter *inputGain;
+	AudioProcessorParameter *outputGain;
+	AudioProcessorParameter *subPreGain;
+	AudioProcessorParameter *hpfFreq;
+	AudioProcessorParameter *lpfFreq;
+	AudioProcessorParameter *soloSub;
+	AudioProcessorParameter *hyst;
 
 private:
 	//==============================================================================
@@ -87,9 +88,12 @@ private:
 	BiquadFilter *biquadPreSubLPF;
 	BiquadFilter *biquadSmoothingFilter;
 	BiquadFilter *biquadPostSubLPF;
+	
+	Ramper *ramper;
 
 	float vc;
 	int sign;
+	float signumGain;
 	int schmittTriggerStatus;
 	int triggerChangeCount;
 	float yk1;
