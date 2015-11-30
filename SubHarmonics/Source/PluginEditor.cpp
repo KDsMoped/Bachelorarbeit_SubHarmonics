@@ -18,7 +18,7 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    setSize (550, 300);
+    setSize (650, 310);
 
 	// Set properties for Master Bypass Button
 	masterBypassButton.addListener(this);
@@ -29,7 +29,7 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 	soloSubButton.setButtonText("Solo Sub");
 
 	// Set properties for the Input Gain Slider
-	inputGainSlider.setSliderStyle(Slider::LinearVertical);
+	inputGainSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
 	inputGainSlider.setRange(0.0, 1.0, 0.01);
 	inputGainSlider.setSliderSnapsToMousePosition(false);
 	inputGainSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, 50);
@@ -39,7 +39,7 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 	inputGainLabel.setText("Input Volume", NotificationType::dontSendNotification);
 
 	// Set properties for the Output Gain Slider
-	outputGainSlider.setSliderStyle(Slider::LinearVertical);
+	outputGainSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
 	outputGainSlider.setRange(0.0, 1.0, 0.01);
 	outputGainSlider.setSliderSnapsToMousePosition(false);
 	outputGainSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, 50);
@@ -49,7 +49,7 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 	outputGainLabel.setText("Output Volume", NotificationType::dontSendNotification);
 
 	// Set properties for the Pre Sub Gain Slider
-	subPreGainSlider.setSliderStyle(Slider::LinearVertical);
+	subPreGainSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
 	subPreGainSlider.setRange(0.0, 1.0, 0.01);
 	subPreGainSlider.setSliderSnapsToMousePosition(false);
 	subPreGainSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, 50);
@@ -59,7 +59,7 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 	subPreGainLabel.setText("Sub Pre Gain", NotificationType::dontSendNotification);
 
 	// Set properties for the HPF Frequncy Slider
-	hpfFreqSlider.setSliderStyle(Slider::LinearVertical);
+	hpfFreqSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
 	hpfFreqSlider.setRange(40, 1000, 1);
 	hpfFreqSlider.setSliderSnapsToMousePosition(false);
 	hpfFreqSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, 50);
@@ -70,7 +70,7 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 	hpfFreqLabel.setText("HPF Frequency", NotificationType::dontSendNotification);
 
 	// Set properties for the LPF Frequncy Slider
-	lpfFreqSlider.setSliderStyle(Slider::LinearVertical);
+	lpfFreqSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
 	lpfFreqSlider.setRange(60, 1500, 1);
 	lpfFreqSlider.setSliderSnapsToMousePosition(false);
 	lpfFreqSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, 50);
@@ -82,11 +82,12 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 
 	// Set properties for the Hysteresis Slider
 	hystSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
-	hystSlider.setRange(0, .05, .001);
+	hystSlider.setRange(0, .1f, .001f);
 	hystSlider.setSliderSnapsToMousePosition(false);
 	hystSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, 50);
 	hystSlider.addListener(this);
-
+	// Set properties for the LPF Frequncy Label
+	hystLabel.setText("Hysteresis", NotificationType::dontSendNotification);
 
 	addAndMakeVisible(&masterBypassButton);
 	addAndMakeVisible(&soloSubButton);
@@ -101,6 +102,7 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 	addAndMakeVisible(&lpfFreqSlider);
 	addAndMakeVisible(&lpfFreqLabel);
 	addAndMakeVisible(&hystSlider);
+	addAndMakeVisible(&hystLabel);
 
 	startTimer(50);
 }
@@ -125,20 +127,21 @@ void PrototypeAudioProcessorEditor::resized()
 {
     // This is generally where you'll want to lay out the positions of any
     // subcomponents in your editor..
-	masterBypassButton.setBounds(150, 250, 100, 40);
-	soloSubButton.setBounds(350, 250, 100, 40);
+	masterBypassButton.setBounds(100, 250, 100, 40);
+	soloSubButton.setBounds(430, 250, 100, 40);
 	
-	inputGainSlider.setBounds(50, 50, 50, 210);
-	inputGainLabel.setBounds(35, 40, 80, 15);
-	outputGainSlider.setBounds(450, 50, 50, 210);
-	outputGainLabel.setBounds(435, 40, 80, 15);
-	subPreGainSlider.setBounds(150, 50, 50, 210);
-	subPreGainLabel.setBounds(135, 40, 80, 15);
-	hpfFreqSlider.setBounds(250, 50, 50, 210);
-	hpfFreqLabel.setBounds(235, 40, 80, 15);
-	lpfFreqSlider.setBounds(350, 50, 50, 210);
-	lpfFreqLabel.setBounds(335, 40, 80, 15);
-	hystSlider.setBounds(100, 0, 50, 50);
+	inputGainSlider.setBounds(50, 110, 50, 100);
+	inputGainLabel.setBounds(35, 90, 80, 15);
+	outputGainSlider.setBounds(550, 110, 50, 100);
+	outputGainLabel.setBounds(535, 90, 80, 15);
+	subPreGainSlider.setBounds(160, 110, 50, 100);
+	subPreGainLabel.setBounds(145, 90, 80, 15);
+	hpfFreqSlider.setBounds(265, 160, 50, 100);
+	hpfFreqLabel.setBounds(250, 140, 80, 15);
+	lpfFreqSlider.setBounds(335, 60, 50, 100);
+	lpfFreqLabel.setBounds(320, 40, 80, 15);
+	hystSlider.setBounds(445, 110, 50, 100);
+	hystLabel.setBounds(430, 90, 80, 15);
 
 }
 

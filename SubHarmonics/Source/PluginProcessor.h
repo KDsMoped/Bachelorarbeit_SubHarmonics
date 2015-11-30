@@ -86,8 +86,8 @@ private:
 	//==============================================================================
 	BiquadFilter *biquadPreSubHPF;
 	BiquadFilter *biquadPreSubLPF;
-	BiquadFilter *biquadSmoothingFilter;
 	BiquadFilter *biquadPostSubLPF;
+	BiquadFilter *biquadPostSubHPF;
 	
 	Ramper *ramper;
 

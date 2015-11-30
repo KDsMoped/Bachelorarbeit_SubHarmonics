@@ -65,16 +65,16 @@ const float defaultMasterBypass = 0.f;
 const float defaultSoloSub = 0.f;
 const float defaultInputGain = 0.5f;
 const float defaultOutputGain = 0.5f;
-const float defaultSubPreGain = 1.f;
+const float defaultSubPreGain = 0.5f;
 const float defaultHpfFreq = 900;// 84.f;
 const float defaultLpfFreq = 1100;// 126.f;
 const float defaultHyst = 0.025f;
 
 //==============================================================================
-PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder6)),
-													 biquadPreSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder6)),
-													 //biquadSmoothingFilter(new BiquadFilter(filterTypeLowPass, filterOrder6)),
-													 biquadPostSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder6))
+PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder8)),
+													 biquadPreSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder8)),
+													 biquadPostSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder6)),
+													 biquadPostSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder6))
 													 {
 	// Set up our parameters. The base class will delete them for us.
 	addParameter(masterBypass = new FloatParameter(defaultMasterBypass, 2, "Master Bypass"));
@@ -201,7 +201,8 @@ void PrototypeAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     // initialisation that you need..
 
 	// Calculate static filter coefficients
-	biquadPostSubLPF->setFilterCoeffs(getSampleRate(), 400, 0.77);
+	biquadPostSubLPF->setFilterCoeffs(getSampleRate(), 600, 0.77);
+	biquadPostSubHPF->setFilterCoeffs(getSampleRate(), 400, 0.77);
 	
 	// Reset envelope detector capacitor voltage
 	vc = 0;
@@ -291,7 +292,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 
 			//Envelope Detector
 			double dt = 1. / getSampleRate();
-			float rc = 100.e-3; // X ms release time
+			float rc = 2000.e-3; // X ms release time
 			double coeff = rc / (rc + dt);
 
 			rectifierBufferedSample = vc;
@@ -299,15 +300,20 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			double rect = fabs(y); // Rectifier(diodes)
 			vc = (rect > vc ? rect : coeff*vc);
 
+			if (rectifierBufferedSample < 0.f) {
+				rectifierBufferedSample = 0.f;
+			}
+
+			rectifierBufferedSample *= 1.1f;
 
 			// Summing Unit
-			effectBufferedSample = (effectBufferedSample + rectifierBufferedSample);
+			effectBufferedSample = (effectBufferedSample + rectifierBufferedSample) / 2;
 
 			// Square Root Extractor
-			if (effectBufferedSample < 0) {
+			if (effectBufferedSample < 0.f) {
 				effectBufferedSample = 0.f;
 			}
-			effectBufferedSample = sqrt(effectBufferedSample);
+			effectBufferedSample = sqrtf(effectBufferedSample);
 
 			
 			// TODO: Signal Conditioning
@@ -348,20 +354,22 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 				}
 			}
 
-			// TODO: Counter
+			// Counter
 			if (triggerChangeCount == 2) {
 				sign *= -1;
-				ramper->setTarget(signumGain, sign, 44); // 1 sec in 44,1kHz
+				ramper->setTarget(signumGain, sign, 10);
 				triggerChangeCount = 0;
 			}
 
-			// TODO: Variable Amplifier
+			// Variable Amplifier
 			ramper->ramp(signumGain);
 			if (signumGain > 1.f) { signumGain = 1.f; }
+			if (signumGain < -1.f) { signumGain = -1.f; }
 			effectBufferedSample *= signumGain;
 
-			// TODO: Post Filter
+			// Post Filter
 			biquadPostSubLPF->processFilter(&effectBufferedSample, 0);
+			biquadPostSubHPF->processFilter(&effectBufferedSample, 0);
 
 			//channelData[i] = (ch == 0 ? triggerBufferedSample:effectBufferedSample);
 			monoData[i] = effectBufferedSample;
@@ -380,15 +388,15 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 					channelData[i] = monoData[i];
 				}
 				else {
-					 //TODO: Mixing Amplifier
-					channelData[i] = (channelData[i] + monoData[i]) / 2;
+					 // Mixing Amplifier
+					channelData[i] = (channelData[i] + monoData[i]) / (sqrtf(2.f));
 				}
 				
 				// Apply Output Gain
 				channelData[i] *= outputGain->getValue();
 			}
 			else {
-				// TODO: Apply Latency...
+				// TODO: Apply Latency?...
 			}
 		}
 	}
@@ -421,6 +429,7 @@ void PrototypeAudioProcessor::getStateInformation (MemoryBlock& destData)
 	xml.setAttribute("sub_pre_gain", subPreGain->getValue());
 	xml.setAttribute("hpf_frequency", hpfFreq->getValue());
 	xml.setAttribute("lpf_frequency", lpfFreq->getValue());
+	xml.setAttribute("hysteresis", hyst->getValue());
 
 	// then use this helper function to stuff it into the binary blob and return it..
 	copyXmlToBinary(xml, destData);
@@ -447,6 +456,7 @@ void PrototypeAudioProcessor::setStateInformation (const void* data, int sizeInB
 			subPreGain->setValue((float)xmlState->getDoubleAttribute("sub_pre_gain", subPreGain->getValue()));
 			hpfFreq->setValue((float)xmlState->getDoubleAttribute("hpf_frequency", hpfFreq->getValue()));
 			lpfFreq->setValue((float)xmlState->getDoubleAttribute("lpf_frequency", lpfFreq->getValue()));
+			hyst->setValue((float)xmlState->getDoubleAttribute("hysteresis", hyst->getValue()));
 		}
 	}
 }
