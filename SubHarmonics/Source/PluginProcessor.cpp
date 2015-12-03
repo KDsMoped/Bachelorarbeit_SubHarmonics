@@ -71,8 +71,8 @@ const float defaultLpfFreq = 1100;// 126.f;
 const float defaultHyst = 0.025f;
 
 //==============================================================================
-PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder8)),
-													 biquadPreSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder8)),
+PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder6)),
+													 biquadPreSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder6)),
 													 biquadPostSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder6)),
 													 biquadPostSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder6))
 													 {
@@ -202,26 +202,31 @@ void PrototypeAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
 
 	// Calculate static filter coefficients
 	biquadPostSubLPF->setFilterCoeffs(getSampleRate(), 600, 0.77);
-	biquadPostSubHPF->setFilterCoeffs(getSampleRate(), 400, 0.77);
+	biquadPostSubHPF->setFilterCoeffs(getSampleRate(), 50, 0.77);
 	
 	// Reset envelope detector capacitor voltage
-	vc = 0;
-
+	vc = 0.f;
+	
 	triggerChangeCount = 0;
 	sign = 1;
 	signumGain = 1.f;
 	schmittTriggerStatus = 0;
-	yk1 = 0;
-
+	yk1 = 0.f;
+	
 	ramper = new Ramper();
 
 	// Clearing buffers
+	biquadPostSubHPF->flushRingBuffer();
+	biquadPostSubLPF->flushRingBuffer();
+	biquadPreSubHPF->flushRingBuffer();
+	biquadPreSubLPF->flushRingBuffer();
 }
 
 void PrototypeAudioProcessor::releaseResources()
 {
     // When playback stops, you can use this as an opportunity to free up any
     // spare memory, etc.
+	delete ramper;
 }
 
 void PrototypeAudioProcessor::reset()
@@ -230,12 +235,12 @@ void PrototypeAudioProcessor::reset()
 	// means there's been a break in the audio's continuity.
 	
 	// Reset envelope detector capacitor voltage
-	vc = 0;
+	vc = 0.f;
 
 	triggerChangeCount = 0;
 	sign = 1;
 	schmittTriggerStatus = 0;
-	yk1 = 0;
+	yk1 = 0.f;
 	
 	// Clearing buffers
 
@@ -246,7 +251,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 	const int numSamples = buffer.getNumSamples();
 
     // Clearing obsolete output channels
-	for(int i = getNumInputChannels(); i < getNumOutputChannels(); ++i) {
+	for(int i = getNumInputChannels(); i < getNumOutputChannels(); i++) {
 		buffer.clear(i, 0, numSamples);
 	}
 
@@ -260,7 +265,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
     // This is the place where you'd normally do the guts of your plugin's
     // audio processing...
 	
-	for (int ch = 0; ch < getNumInputChannels(); ++ch) {
+	for (int ch = 0; ch < getNumInputChannels(); ch++) {
 		// Retrieve pointers to modify each buffers channel data
 		float* channelData = buffer.getWritePointer(ch);
 		
@@ -371,12 +376,12 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			biquadPostSubLPF->processFilter(&effectBufferedSample, 0);
 			biquadPostSubHPF->processFilter(&effectBufferedSample, 0);
 
-			//channelData[i] = (ch == 0 ? triggerBufferedSample:effectBufferedSample);
+			//monoData[i] = triggerBufferedSample;
 			monoData[i] = effectBufferedSample;
 		}
 	}
 
-	for (int ch = 0; ch < getNumInputChannels(); ++ch) {
+	for (int ch = 0; ch < getNumInputChannels(); ch++) {
 		// Retrieve pointers to modify each buffers channel data
 		float* channelData = buffer.getWritePointer(ch);
 
@@ -397,6 +402,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			}
 			else {
 				// TODO: Apply Latency?...
+
 			}
 		}
 	}

@@ -109,7 +109,7 @@ void BiquadFilter::flushRingBuffer() {
 	for (int i = 0; i < 3; i++) {
 		for (int j = 0; j < 2; j++) {
 			for (int k = 0; k < 5; k++) {
-				ringBuffer[i][j][k] = 0;
+				ringBuffer[i][j][k] = 0.f;
 			}
 		}
 	}
