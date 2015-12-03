@@ -88,8 +88,11 @@ private:
 	BiquadFilter *biquadPreSubLPF;
 	BiquadFilter *biquadPostSubLPF;
 	BiquadFilter *biquadPostSubHPF;
+	BiquadFilter *biquadPreSubBPF;
 	
 	Ramper *ramper;
+
+	
 
 	float vc;
 	int sign;

@@ -100,7 +100,11 @@ void BiquadFilter::setFilterCoeffs(float sr, float f, float q) {
 		coeffA2 = ((pow(k, 2) * q) - k + q) / ((pow(k, 2) * q) + k + q);
 	}
 	if (filterType == filterTypeBandPass) {
-
+		coeffB0 = k / ((pow(k, 2) * q) + k + q);
+		coeffB1 = 0.f;
+		coeffB2 = coeffB0 * -1;
+		coeffA1 = (2 * q * (pow(k, 2) - 1)) / ((pow(k, 2) * q) + k + q);
+		coeffA2 = ((pow(k, 2) * q) - k + q) / ((pow(k, 2) * q) + k + q);
 	}
 }
 

@@ -74,7 +74,8 @@ const float defaultHyst = 0.025f;
 PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder6)),
 													 biquadPreSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder6)),
 													 biquadPostSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder6)),
-													 biquadPostSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder6))
+													 biquadPostSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder6)),
+													 biquadPreSubBPF(new BiquadFilter(filterTypeBandPass, filterOrder8))
 													 {
 	// Set up our parameters. The base class will delete them for us.
 	addParameter(masterBypass = new FloatParameter(defaultMasterBypass, 2, "Master Bypass"));
@@ -200,9 +201,7 @@ void PrototypeAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
 
-	// Calculate static filter coefficients
-	biquadPostSubLPF->setFilterCoeffs(getSampleRate(), 600, 0.77);
-	biquadPostSubHPF->setFilterCoeffs(getSampleRate(), 50, 0.77);
+	
 	
 	// Reset envelope detector capacitor voltage
 	vc = 0.f;
@@ -220,6 +219,7 @@ void PrototypeAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
 	biquadPostSubLPF->flushRingBuffer();
 	biquadPreSubHPF->flushRingBuffer();
 	biquadPreSubLPF->flushRingBuffer();
+	biquadPreSubBPF->flushRingBuffer();
 }
 
 void PrototypeAudioProcessor::releaseResources()
@@ -290,6 +290,20 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			// Applay Sub Pre Gain
 			effectBufferedSample *= (subPreGain->getValue() * 2);
 
+			// TODO: Signal Conditioning
+			/*
+			// Pre Sub HPF
+			biquadPreSubHPF->setFilterCoeffs(getSampleRate(), hpfFreq->getValue(), 0.71f);
+			biquadPreSubHPF->processFilter(&effectBufferedSample, 0);
+
+			// Pre Sub LPF
+			biquadPreSubLPF->setFilterCoeffs(getSampleRate(), lpfFreq->getValue(), 0.71f);
+			biquadPreSubLPF->processFilter(&effectBufferedSample, 0);
+			*/
+			// Pre Sub BPF
+			biquadPreSubBPF->setFilterCoeffs(getSampleRate(), hpfFreq->getValue(), 0.71f);
+			biquadPreSubBPF->processFilter(&effectBufferedSample, 0);
+
 			// Forking effect signal paths
 			float rectifierBufferedSample = effectBufferedSample;
 			float triggerBufferedSample = effectBufferedSample;
@@ -297,7 +311,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 
 			//Envelope Detector
 			double dt = 1. / getSampleRate();
-			float rc = 2000.e-3; // X ms release time
+			float rc = 3.e-3; // X ms release time
 			double coeff = rc / (rc + dt);
 
 			rectifierBufferedSample = vc;
@@ -309,7 +323,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 				rectifierBufferedSample = 0.f;
 			}
 
-			rectifierBufferedSample *= 1.1f;
+			//rectifierBufferedSample *= 1.1f;
 
 			// Summing Unit
 			effectBufferedSample = (effectBufferedSample + rectifierBufferedSample) / 2;
@@ -320,7 +334,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			}
 			effectBufferedSample = sqrtf(effectBufferedSample);
 
-			
+			/*
 			// TODO: Signal Conditioning
 			// Pre Sub HPF
 			biquadPreSubHPF->setFilterCoeffs(getSampleRate(), hpfFreq->getValue(), 0.71);
@@ -329,7 +343,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			// Pre Sub LPF
 			biquadPreSubLPF->setFilterCoeffs(getSampleRate(), lpfFreq->getValue(), 0.71);
 			biquadPreSubLPF->processFilter(&triggerBufferedSample, 0);
-			
+			*/
 			/*
 			// First Order Lowpass Filter to shift the signal by 90°
 			float f0 = hpfFreq->getValue();
@@ -365,17 +379,23 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 				ramper->setTarget(signumGain, sign, 10);
 				triggerChangeCount = 0;
 			}
-
+			
 			// Variable Amplifier
 			ramper->ramp(signumGain);
 			if (signumGain > 1.f) { signumGain = 1.f; }
 			if (signumGain < -1.f) { signumGain = -1.f; }
 			effectBufferedSample *= signumGain;
+			
 
 			// Post Filter
-			biquadPostSubLPF->processFilter(&effectBufferedSample, 0);
-			biquadPostSubHPF->processFilter(&effectBufferedSample, 0);
+			
+			// Calculate static filter coefficients
+			biquadPostSubLPF->setFilterCoeffs(getSampleRate(), 300.f, 0.71f);
+			biquadPostSubHPF->setFilterCoeffs(getSampleRate(), 20.f, 0.71f);
 
+			biquadPostSubLPF->processFilter(&effectBufferedSample, 0);
+			//biquadPostSubHPF->processFilter(&effectBufferedSample, 0);
+			
 			//monoData[i] = triggerBufferedSample;
 			monoData[i] = effectBufferedSample;
 		}
@@ -402,7 +422,9 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			}
 			else {
 				// TODO: Apply Latency?...
-
+				// Pre Sub BPF
+				biquadPreSubBPF->setFilterCoeffs(getSampleRate(), hpfFreq->getValue(), 0.71f);
+				biquadPreSubBPF->processFilter(&channelData[i], ch);
 			}
 		}
 	}
