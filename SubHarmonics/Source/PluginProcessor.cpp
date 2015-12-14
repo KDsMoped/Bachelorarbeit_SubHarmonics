@@ -66,9 +66,10 @@ const float defaultSoloSub = 0.f;
 const float defaultInputGain = 0.5f;
 const float defaultOutputGain = 0.5f;
 const float defaultSubPreGain = 0.5f;
-const float defaultHpfFreq = 900;// 84.f;
-const float defaultLpfFreq = 1100;// 126.f;
+const float defaultbpFreq = 1000;
+const float defaultbpQ = 0.707f;
 const float defaultHyst = 0.025f;
+const float defaultColour = 400.f;
 
 //==============================================================================
 PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder6)),
@@ -83,9 +84,10 @@ PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadF
 	addParameter(inputGain = new FloatParameter(defaultInputGain, 0, "Input Gain"));
 	addParameter(outputGain = new FloatParameter(defaultOutputGain, 0, "Output Gain"));
 	addParameter(subPreGain = new FloatParameter(defaultSubPreGain, 0, "Sub Pre Gain"));
-	addParameter(hpfFreq = new FloatParameter(defaultHpfFreq, 0, "HPF Frequency"));
-	addParameter(lpfFreq = new FloatParameter(defaultLpfFreq, 0, "LPF Frequency"));
+	addParameter(bpFreq = new FloatParameter(defaultbpFreq, 0, "BP Frequency"));
+	addParameter(bpQ = new FloatParameter(defaultbpQ, 0, "BP Q"));
 	addParameter(hyst = new FloatParameter(defaultHyst, 0, "Hysteresis"));
+	addParameter(colour = new FloatParameter(defaultColour, 0, "Colour"));
 }
 
 PrototypeAudioProcessor::~PrototypeAudioProcessor() {
@@ -201,8 +203,6 @@ void PrototypeAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
 
-	
-	
 	// Reset envelope detector capacitor voltage
 	vc = 0.f;
 	
@@ -215,11 +215,11 @@ void PrototypeAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
 	ramper = new Ramper();
 
 	// Clearing buffers
-	biquadPostSubHPF->flushRingBuffer();
-	biquadPostSubLPF->flushRingBuffer();
-	biquadPreSubHPF->flushRingBuffer();
-	biquadPreSubLPF->flushRingBuffer();
-	biquadPreSubBPF->flushRingBuffer();
+	biquadPostSubHPF->flushBuffer();
+	biquadPostSubLPF->flushBuffer();
+	biquadPreSubHPF->flushBuffer();
+	biquadPreSubLPF->flushBuffer();
+	biquadPreSubBPF->flushBuffer();
 }
 
 void PrototypeAudioProcessor::releaseResources()
@@ -301,9 +301,9 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			biquadPreSubLPF->processFilter(&effectBufferedSample, 0);
 			*/
 			// Pre Sub BPF
-			biquadPreSubBPF->setFilterCoeffs(getSampleRate(), hpfFreq->getValue(), 0.71f);
+			biquadPreSubBPF->setFilterCoeffs(getSampleRate(), bpFreq->getValue(), bpQ->getValue());
 			biquadPreSubBPF->processFilter(&effectBufferedSample, 0);
-
+			
 			// Forking effect signal paths
 			float rectifierBufferedSample = effectBufferedSample;
 			float triggerBufferedSample = effectBufferedSample;
@@ -311,7 +311,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 
 			//Envelope Detector
 			double dt = 1. / getSampleRate();
-			float rc = 3.e-3; // X ms release time
+			float rc = 5.e-3; // X ms release time
 			double coeff = rc / (rc + dt);
 
 			rectifierBufferedSample = vc;
@@ -388,9 +388,8 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			
 
 			// Post Filter
-			
 			// Calculate static filter coefficients
-			biquadPostSubLPF->setFilterCoeffs(getSampleRate(), 300.f, 0.71f);
+			biquadPostSubLPF->setFilterCoeffs(getSampleRate(), colour->getValue(), 0.71f);
 			biquadPostSubHPF->setFilterCoeffs(getSampleRate(), 20.f, 0.71f);
 
 			biquadPostSubLPF->processFilter(&effectBufferedSample, 0);
@@ -422,9 +421,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			}
 			else {
 				// TODO: Apply Latency?...
-				// Pre Sub BPF
-				biquadPreSubBPF->setFilterCoeffs(getSampleRate(), hpfFreq->getValue(), 0.71f);
-				biquadPreSubBPF->processFilter(&channelData[i], ch);
+
 			}
 		}
 	}
@@ -455,8 +452,8 @@ void PrototypeAudioProcessor::getStateInformation (MemoryBlock& destData)
 	xml.setAttribute("input_gain", inputGain->getValue());
 	xml.setAttribute("output_gain", outputGain->getValue());
 	xml.setAttribute("sub_pre_gain", subPreGain->getValue());
-	xml.setAttribute("hpf_frequency", hpfFreq->getValue());
-	xml.setAttribute("lpf_frequency", lpfFreq->getValue());
+	xml.setAttribute("bp_frequency", bpFreq->getValue());
+	xml.setAttribute("bp_q", bpQ->getValue());
 	xml.setAttribute("hysteresis", hyst->getValue());
 
 	// then use this helper function to stuff it into the binary blob and return it..
@@ -482,8 +479,8 @@ void PrototypeAudioProcessor::setStateInformation (const void* data, int sizeInB
 			inputGain->setValue((float)xmlState->getDoubleAttribute("input_gain", inputGain->getValue()));
 			outputGain->setValue((float)xmlState->getDoubleAttribute("output_gain", outputGain->getValue()));
 			subPreGain->setValue((float)xmlState->getDoubleAttribute("sub_pre_gain", subPreGain->getValue()));
-			hpfFreq->setValue((float)xmlState->getDoubleAttribute("hpf_frequency", hpfFreq->getValue()));
-			lpfFreq->setValue((float)xmlState->getDoubleAttribute("lpf_frequency", lpfFreq->getValue()));
+			bpFreq->setValue((float)xmlState->getDoubleAttribute("bp_frequency", bpFreq->getValue()));
+			bpQ->setValue((float)xmlState->getDoubleAttribute("bp_q", bpQ->getValue()));
 			hyst->setValue((float)xmlState->getDoubleAttribute("hysteresis", hyst->getValue()));
 		}
 	}

@@ -77,10 +77,11 @@ public:
 	AudioProcessorParameter *inputGain;
 	AudioProcessorParameter *outputGain;
 	AudioProcessorParameter *subPreGain;
-	AudioProcessorParameter *hpfFreq;
-	AudioProcessorParameter *lpfFreq;
+	AudioProcessorParameter *bpFreq;
+	AudioProcessorParameter *bpQ;
 	AudioProcessorParameter *soloSub;
 	AudioProcessorParameter *hyst;
+	AudioProcessorParameter *colour;
 
 private:
 	//==============================================================================
@@ -91,8 +92,6 @@ private:
 	BiquadFilter *biquadPreSubBPF;
 	
 	Ramper *ramper;
-
-	
 
 	float vc;
 	int sign;

@@ -16,9 +16,7 @@
 
 BiquadFilter::BiquadFilter(int filterType, int filterOrder) : filterType(filterType), 
 															  filterOrder(filterOrder) 
-															  {
-	flushRingBuffer();
-}
+															  {}
 BiquadFilter::~BiquadFilter() { delete ringBuffer; }
 
 
@@ -109,7 +107,7 @@ void BiquadFilter::setFilterCoeffs(float sr, float f, float q) {
 }
 
 
-void BiquadFilter::flushRingBuffer() {
+void BiquadFilter::flushBuffer() {
 	for (int i = 0; i < 3; i++) {
 		for (int j = 0; j < 2; j++) {
 			for (int k = 0; k < 5; k++) {

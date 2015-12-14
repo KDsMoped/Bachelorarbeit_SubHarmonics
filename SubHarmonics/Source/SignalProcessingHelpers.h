@@ -39,7 +39,7 @@ public:
 
 	void processFilter(float *leSample, int leChannel);
 	void setFilterCoeffs(float sr, float f, float q);
-	void flushRingBuffer();
+	void flushBuffer();
 
 private:
 	int filterType;

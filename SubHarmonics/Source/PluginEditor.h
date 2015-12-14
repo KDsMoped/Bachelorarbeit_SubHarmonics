@@ -54,14 +54,17 @@ private:
 	Slider subPreGainSlider;
 	Label subPreGainLabel;
 
-	Slider hpfFreqSlider;
-	Label hpfFreqLabel;
+	Slider bpFreqSlider;
+	Label bpFreqLabel;
 
-	Slider lpfFreqSlider;
-	Label lpfFreqLabel;
+	Slider bpQSlider;
+	Label bpQLabel;
 
 	Slider hystSlider;
 	Label hystLabel;
+
+	Slider colourSlider;
+	Label colourLabel;
 
 	//==============================================================================
 	PrototypeAudioProcessor& getProcessor() const
