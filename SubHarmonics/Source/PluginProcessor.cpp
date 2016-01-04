@@ -257,9 +257,17 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 
 
 	float monoData[4096];
-
 	for (int i = 0; i < getBlockSize(); i++) {
 		monoData[i] = 0;
+	}
+
+
+	// Debug Signal Buffer
+	float debugData[4096][2];
+	for (int i = 0; i < getBlockSize(); i++) {
+		for (int j = 0; j < 2; j++) {
+			monoData[i] = 0;
+		}
 	}
 
     // This is the place where you'd normally do the guts of your plugin's
@@ -272,6 +280,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 		for (int i = 0; i < getBlockSize(); i++) {
 			// Check if bypassed
 			if (masterBypass->getValue() == 0) {
+				debugData[i][0] = channelData[i];
 				// Apply Input Gain
 				channelData[i] *= (inputGain->getValue() * 2);
 				// Mono Sum
@@ -323,8 +332,6 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 				rectifierBufferedSample = 0.f;
 			}
 
-			//rectifierBufferedSample *= 1.1f;
-
 			// Summing Unit
 			effectBufferedSample = (effectBufferedSample + rectifierBufferedSample) / 2;
 
@@ -344,16 +351,11 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			biquadPreSubLPF->setFilterCoeffs(getSampleRate(), lpfFreq->getValue(), 0.71);
 			biquadPreSubLPF->processFilter(&triggerBufferedSample, 0);
 			*/
-			/*
-			// First Order Lowpass Filter to shift the signal by 90°
-			float f0 = hpfFreq->getValue();
-			float tau = 1 / (2 * M_PI * f0);
-			float c = tau / dt;
-			float xk = triggerBufferedSample;
-			float yk = (1. / (1. + c)) * (xk + (c * yk1));
-			yk1 = yk;
-			triggerBufferedSample = yk;
-			*/
+			
+
+			// TODO: first order allpass
+			// ...
+
 
 			// Trigger Circuit
 			// Schmitt-Trigger
@@ -397,6 +399,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			
 			//monoData[i] = triggerBufferedSample;
 			monoData[i] = effectBufferedSample;
+			debugData[i][1] = monoData[i];
 		}
 	}
 
@@ -415,12 +418,13 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 					 // Mixing Amplifier
 					channelData[i] = (channelData[i] + monoData[i]) / (sqrtf(2.f));
 				}
+
+				channelData[i] = debugData[i][ch];
 				
 				// Apply Output Gain
 				channelData[i] *= outputGain->getValue();
 			}
 			else {
-				// TODO: Apply Latency?...
 
 			}
 		}
@@ -455,6 +459,7 @@ void PrototypeAudioProcessor::getStateInformation (MemoryBlock& destData)
 	xml.setAttribute("bp_frequency", bpFreq->getValue());
 	xml.setAttribute("bp_q", bpQ->getValue());
 	xml.setAttribute("hysteresis", hyst->getValue());
+	xml.setAttribute("colour", colour->getValue());
 
 	// then use this helper function to stuff it into the binary blob and return it..
 	copyXmlToBinary(xml, destData);
@@ -482,6 +487,7 @@ void PrototypeAudioProcessor::setStateInformation (const void* data, int sizeInB
 			bpFreq->setValue((float)xmlState->getDoubleAttribute("bp_frequency", bpFreq->getValue()));
 			bpQ->setValue((float)xmlState->getDoubleAttribute("bp_q", bpQ->getValue()));
 			hyst->setValue((float)xmlState->getDoubleAttribute("hysteresis", hyst->getValue()));
+			colour->setValue((float)xmlState->getDoubleAttribute("colour", colour->getValue()));
 		}
 	}
 }
