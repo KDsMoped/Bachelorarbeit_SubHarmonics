@@ -152,8 +152,8 @@ void PrototypeAudioProcessorEditor::resized()
 	// Setting slider sizes
 	inputGainSlider.setBounds(50, 110, defaultKnobWidth, defaultKnobHeight);
 	subPreGainSlider.setBounds(150, 110, defaultKnobWidth, defaultKnobHeight);
-	bpFreqSlider.setBounds(250, 165, defaultKnobWidth, defaultKnobHeight);
-	bpQSlider.setBounds(250, 55, defaultKnobWidth, defaultKnobHeight);
+	bpFreqSlider.setBounds(250, 55, defaultKnobWidth, defaultKnobHeight);
+	bpQSlider.setBounds(250, 165, defaultKnobWidth, defaultKnobHeight);
 	hystSlider.setBounds(350, 110, defaultKnobWidth, defaultKnobHeight);
 	colourSlider.setBounds(450, 110, defaultKnobWidth, defaultKnobHeight);
 	outputGainSlider.setBounds(550, 110, defaultKnobWidth, defaultKnobHeight);
@@ -161,8 +161,8 @@ void PrototypeAudioProcessorEditor::resized()
 	// Setting label sizes
 	inputGainLabel.setBounds(35, 90, 80, 15);
 	subPreGainLabel.setBounds(135, 90, 80, 15);
-	bpFreqLabel.setBounds(235, 145, 80, 15);
-	bpQLabel.setBounds(235, 35, 80, 15);
+	bpFreqLabel.setBounds(235, 35, 80, 15);
+	bpQLabel.setBounds(235, 145, 80, 15);
 	hystLabel.setBounds(335, 90, 80, 15);
 	colourLabel.setBounds(450, 90, 80, 15);
 	outputGainLabel.setBounds(535, 90, 80, 15);
