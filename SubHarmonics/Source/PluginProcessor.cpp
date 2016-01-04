@@ -320,7 +320,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 
 			//Envelope Detector
 			double dt = 1. / getSampleRate();
-			float rc = 5.e-3; // X ms release time
+			float rc = 2.e-3; // X ms release time
 			double coeff = rc / (rc + dt);
 
 			rectifierBufferedSample = vc;
@@ -419,7 +419,8 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 					channelData[i] = (channelData[i] + monoData[i]) / (sqrtf(2.f));
 				}
 
-				channelData[i] = debugData[i][ch];
+				
+				//channelData[i] = debugData[i][ch];
 				
 				// Apply Output Gain
 				channelData[i] *= outputGain->getValue();
