@@ -44,15 +44,13 @@ private:
 	*/
 	ToggleButton masterBypassButton;
 	ToggleButton soloSubButton;
+	ToggleButton switchFilterButton;
 
 	Slider inputGainSlider;
 	Label inputGainLabel;
 
-	Slider outputGainSlider;
-	Label outputGainLabel;
-
-	Slider subPreGainSlider;
-	Label subPreGainLabel;
+	Slider preSubGainSlider;
+	Label preSubGainLabel;
 
 	Slider bpFreqSlider;
 	Label bpFreqLabel;
@@ -60,11 +58,29 @@ private:
 	Slider bpQSlider;
 	Label bpQLabel;
 
+	Slider hpfFreqSlider;
+	Label hpfFreqLabel;
+
+	Slider lpfFreqSlider;
+	Label lpfFreqLabel;
+
+	Slider decaySlider;
+	Label decayLabel;
+
 	Slider hystSlider;
 	Label hystLabel;
 
 	Slider colourSlider;
 	Label colourLabel;
+
+	Slider postSubGainSlider;
+	Label postSubGainLabel;
+
+	Slider directGainSlider;
+	Label directGainLabel;
+
+	Slider outputGainSlider;
+	Label outputGainLabel;
 
 	//==============================================================================
 	PrototypeAudioProcessor& getProcessor() const

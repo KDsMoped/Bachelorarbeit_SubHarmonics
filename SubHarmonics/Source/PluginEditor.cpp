@@ -18,7 +18,7 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 
     // Make sure that before the constructor has finished, you've set the
     // editor's size to whatever you need it to be.
-    setSize (650, 310);
+    setSize (850, 310);
 
 	int defaultTextBoxHeight = 35;	// Text box height in pixels
 
@@ -29,6 +29,10 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 	// Set properties for Solo Sub Button
 	soloSubButton.addListener(this);
 	soloSubButton.setButtonText("Solo Sub");
+
+	// Set properties for Switch Filter Button
+	switchFilterButton.addListener(this);
+	switchFilterButton.setButtonText("Switch Filter");
 
 	// Set properties for the Input Gain Slider
 	inputGainSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
@@ -51,16 +55,16 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 	outputGainLabel.setText("Output Volume", NotificationType::dontSendNotification);
 
 	// Set properties for the Pre Sub Gain Slider
-	subPreGainSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
-	subPreGainSlider.setRange(0.0, 1.0, 0.01);
-	subPreGainSlider.setSliderSnapsToMousePosition(false);
-	subPreGainSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
-	subPreGainSlider.setTextValueSuffix(" Volume");
-	subPreGainSlider.addListener(this);
+	preSubGainSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
+	preSubGainSlider.setRange(0.0, 1.0, 0.01);
+	preSubGainSlider.setSliderSnapsToMousePosition(false);
+	preSubGainSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
+	preSubGainSlider.setTextValueSuffix(" Volume");
+	preSubGainSlider.addListener(this);
 	// Set properties for the Pre Sub Gain Label
-	subPreGainLabel.setText("Sub Pre Gain", NotificationType::dontSendNotification);
+	preSubGainLabel.setText("Pre Sub Gain", NotificationType::dontSendNotification);
 
-	// Set properties for the BP Frequncy Slider
+	// Set properties for the BP Frequency Slider
 	bpFreqSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
 	bpFreqSlider.setRange(40, 1000, 1);
 	bpFreqSlider.setSliderSnapsToMousePosition(false);
@@ -68,22 +72,53 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 	bpFreqSlider.setTextValueSuffix(" Hz");
 	bpFreqSlider.setSkewFactor(0.5);
 	bpFreqSlider.addListener(this);
-	// Set properties for the HPF Frequncy Label
+	// Set properties for the HPF Frequency Label
 	bpFreqLabel.setText("BP Frequency", NotificationType::dontSendNotification);
 
 	// Set properties for the BP Q Slider
 	bpQSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
-	bpQSlider.setRange(0.5f, 1.f, 0.001f);
+	bpQSlider.setRange(0.2f, 1.f, 0.001f);
 	bpQSlider.setSliderSnapsToMousePosition(false);
 	bpQSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
-	//bpQSlider.setSkewFactor(0.5);
 	bpQSlider.addListener(this);
 	// Set properties for the LPF Frequncy Label
 	bpQLabel.setText("BP Q", NotificationType::dontSendNotification);
 
+	// Set properties for the HPF Frequency Slider
+	hpfFreqSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
+	hpfFreqSlider.setRange(40, 1000, 1);
+	hpfFreqSlider.setSliderSnapsToMousePosition(false);
+	hpfFreqSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
+	hpfFreqSlider.setTextValueSuffix(" Hz");
+	hpfFreqSlider.setSkewFactor(0.5);
+	hpfFreqSlider.addListener(this);
+	// Set properties for the HPF Frequency Label
+	hpfFreqLabel.setText("HPF Frequency", NotificationType::dontSendNotification);
+
+	// Set properties for the LPF Frequency Slider
+	lpfFreqSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
+	lpfFreqSlider.setRange(40, 1000, 1);
+	lpfFreqSlider.setSliderSnapsToMousePosition(false);
+	lpfFreqSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
+	lpfFreqSlider.setTextValueSuffix(" Hz");
+	lpfFreqSlider.setSkewFactor(0.5);
+	lpfFreqSlider.addListener(this);
+	// Set properties for the LPF Frequency Label
+	lpfFreqLabel.setText("LPF Frequency", NotificationType::dontSendNotification);
+
+	// Set properties for the Decay Slider
+	decaySlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
+	decaySlider.setRange(.5f, 10.f, .5f);
+	decaySlider.setSliderSnapsToMousePosition(false);
+	decaySlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
+	decaySlider.setTextValueSuffix(" ms");
+	decaySlider.addListener(this);
+	// Set properties for the Decay Label
+	decayLabel.setText("Decay", NotificationType::dontSendNotification);
+
 	// Set properties for the Hysteresis Slider
 	hystSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
-	hystSlider.setRange(0, .1f, .001f);
+	hystSlider.setRange(0, 1.f, .0001f);
 	hystSlider.setSliderSnapsToMousePosition(false);
 	hystSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
 	hystSlider.addListener(this);
@@ -101,23 +136,53 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 	// Set properties for the Colour Label
 	colourLabel.setText("Colour", NotificationType::dontSendNotification);
 
+	// Set properties for the Direct Gain Slider
+	directGainSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
+	directGainSlider.setRange(0.0, 1.0, 0.01);
+	directGainSlider.setSliderSnapsToMousePosition(false);
+	directGainSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
+	directGainSlider.setTextValueSuffix(" Volume");
+	directGainSlider.addListener(this);
+	// Set properties for the Direct Gain Label
+	directGainLabel.setText("Direct Gain", NotificationType::dontSendNotification);
+
+	// Set properties for the Post Sub Gain Slider
+	postSubGainSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
+	postSubGainSlider.setRange(0.0, 1.0, 0.01);
+	postSubGainSlider.setSliderSnapsToMousePosition(false);
+	postSubGainSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
+	postSubGainSlider.setTextValueSuffix(" Volume");
+	postSubGainSlider.addListener(this);
+	// Set properties for the Post Sub Gain Label
+	postSubGainLabel.setText("Post Sub Gain", NotificationType::dontSendNotification);
+
 	addAndMakeVisible(&masterBypassButton);
 	addAndMakeVisible(&soloSubButton);
+	addAndMakeVisible(&switchFilterButton);
 	addAndMakeVisible(&inputGainSlider);
 	addAndMakeVisible(&inputGainLabel);
 	addAndMakeVisible(&outputGainSlider);
 	addAndMakeVisible(&outputGainLabel);
-	addAndMakeVisible(&subPreGainSlider);
-	addAndMakeVisible(&subPreGainLabel);
+	addAndMakeVisible(&preSubGainSlider);
+	addAndMakeVisible(&preSubGainLabel);
 	addAndMakeVisible(&bpFreqSlider);
 	addAndMakeVisible(&bpFreqLabel);
 	addAndMakeVisible(&bpQSlider);
 	addAndMakeVisible(&bpQLabel);
+	addAndMakeVisible(&hpfFreqSlider);
+	addAndMakeVisible(&hpfFreqLabel);
+	addAndMakeVisible(&lpfFreqSlider);
+	addAndMakeVisible(&lpfFreqLabel);
+	addAndMakeVisible(&decaySlider);
+	addAndMakeVisible(&decayLabel);
 	addAndMakeVisible(&hystSlider);
 	addAndMakeVisible(&hystLabel);
 	addAndMakeVisible(&colourSlider);
 	addAndMakeVisible(&colourLabel);
-
+	addAndMakeVisible(&directGainSlider);
+	addAndMakeVisible(&directGainLabel);
+	addAndMakeVisible(&postSubGainSlider);
+	addAndMakeVisible(&postSubGainLabel);
 	startTimer(50);
 }
 
@@ -145,41 +210,59 @@ void PrototypeAudioProcessorEditor::resized()
 	int defaultKnobHeight = 80;	// knob height in pixels
 	int defaultKnobWidth = 50;	// knob width in pixels
 
-	// Setting button sizes
-	masterBypassButton.setBounds(100, 250, 100, 40);
-	soloSubButton.setBounds(430, 250, 100, 40);
+	// Setting button sizes and positions
+	masterBypassButton.setBounds(50, 250, 100, 40);
+	soloSubButton.setBounds(650, 250, 100, 40);
+	switchFilterButton.setBounds(250, 250, 100, 40);
 	
-	// Setting slider sizes
+	// Setting slider sizes and positions
 	inputGainSlider.setBounds(50, 110, defaultKnobWidth, defaultKnobHeight);
-	subPreGainSlider.setBounds(150, 110, defaultKnobWidth, defaultKnobHeight);
+	preSubGainSlider.setBounds(150, 110, defaultKnobWidth, defaultKnobHeight);
 	bpFreqSlider.setBounds(250, 55, defaultKnobWidth, defaultKnobHeight);
 	bpQSlider.setBounds(250, 165, defaultKnobWidth, defaultKnobHeight);
-	hystSlider.setBounds(350, 110, defaultKnobWidth, defaultKnobHeight);
-	colourSlider.setBounds(450, 110, defaultKnobWidth, defaultKnobHeight);
-	outputGainSlider.setBounds(550, 110, defaultKnobWidth, defaultKnobHeight);
+	lpfFreqSlider.setBounds(350, 55, defaultKnobWidth, defaultKnobHeight);
+	hpfFreqSlider.setBounds(350, 165, defaultKnobWidth, defaultKnobHeight);
+	decaySlider.setBounds(450, 55, defaultKnobWidth, defaultKnobHeight);
+	hystSlider.setBounds(450, 165, defaultKnobWidth, defaultKnobHeight);
+	colourSlider.setBounds(550, 110, defaultKnobWidth, defaultKnobHeight);
+	directGainSlider.setBounds(650, 55, defaultKnobWidth, defaultKnobHeight);
+	postSubGainSlider.setBounds(650, 165, defaultKnobWidth, defaultKnobHeight);
+	outputGainSlider.setBounds(750, 110, defaultKnobWidth, defaultKnobHeight);
 	
-	// Setting label sizes
+	// Setting label sizes and positions
 	inputGainLabel.setBounds(35, 90, 80, 15);
-	subPreGainLabel.setBounds(135, 90, 80, 15);
+	preSubGainLabel.setBounds(135, 90, 80, 15);
 	bpFreqLabel.setBounds(235, 35, 80, 15);
 	bpQLabel.setBounds(235, 145, 80, 15);
-	hystLabel.setBounds(335, 90, 80, 15);
-	colourLabel.setBounds(450, 90, 80, 15);
-	outputGainLabel.setBounds(535, 90, 80, 15);
+	lpfFreqLabel.setBounds(335, 35, 80, 15);
+	hpfFreqLabel.setBounds(335, 145, 80, 15);
+	decayLabel.setBounds(435, 35, 80, 15);
+	hystLabel.setBounds(435, 145, 80, 15);
+	colourLabel.setBounds(550, 90, 80, 15);
+	directGainLabel.setBounds(635, 35, 80, 15);
+	postSubGainLabel.setBounds(635, 145, 80, 15);
+	outputGainLabel.setBounds(735, 90, 80, 15);
 }
 
 //==============================================================================
 // This timer periodically checks whether any of the filter's parameters have changed...
 void PrototypeAudioProcessorEditor::timerCallback() {
-	inputGainSlider.setValue(getProcessor().inputGain->getValue(), dontSendNotification);
-	outputGainSlider.setValue(getProcessor().outputGain->getValue(), dontSendNotification);
-	subPreGainSlider.setValue(getProcessor().subPreGain->getValue(), dontSendNotification);
-	bpFreqSlider.setValue(getProcessor().bpFreq->getValue(), dontSendNotification);
-	bpQSlider.setValue(getProcessor().bpQ->getValue(), dontSendNotification);
-	masterBypassButton.setToggleState((bool)getProcessor().masterBypass->getValue(), dontSendNotification);
-	soloSubButton.setToggleState((bool)getProcessor().soloSub->getValue(), dontSendNotification);
-	hystSlider.setValue(getProcessor().hyst->getValue(), dontSendNotification);
-	colourSlider.setValue(getProcessor().colour->getValue(), dontSendNotification);
+	masterBypassButton.setToggleState((bool)getProcessor().paramMasterBypass->getValue(), dontSendNotification);
+	soloSubButton.setToggleState((bool)getProcessor().paramSoloSub->getValue(), dontSendNotification);
+	switchFilterButton.setToggleState((bool)getProcessor().paramSwitchFilter->getValue(), dontSendNotification);
+
+	inputGainSlider.setValue(getProcessor().paramInputGain->getValue(), dontSendNotification);
+	preSubGainSlider.setValue(getProcessor().paramPreSubGain->getValue(), dontSendNotification);
+	bpFreqSlider.setValue(getProcessor().paramBpFreq->getValue(), dontSendNotification);
+	bpQSlider.setValue(getProcessor().paramBpQ->getValue(), dontSendNotification);
+	lpfFreqSlider.setValue(getProcessor().paramLpfFreq->getValue(), dontSendNotification);
+	hpfFreqSlider.setValue(getProcessor().paramHpfFreq->getValue(), dontSendNotification);
+	decaySlider.setValue(getProcessor().paramDecay->getValue(), dontSendNotification);
+	hystSlider.setValue(getProcessor().paramHyst->getValue(), dontSendNotification);
+	colourSlider.setValue(getProcessor().paramColour->getValue(), dontSendNotification);
+	directGainSlider.setValue(getProcessor().paramDirectGain->getValue(), dontSendNotification);
+	postSubGainSlider.setValue(getProcessor().paramPostSubGain->getValue(), dontSendNotification);
+	outputGainSlider.setValue(getProcessor().paramOutputGain->getValue(), dontSendNotification);
 }
 
 //==============================================================================
@@ -225,18 +308,23 @@ void PrototypeAudioProcessorEditor::buttonClicked(Button* button)
 
 //==============================================================================
 AudioProcessorParameter* PrototypeAudioProcessorEditor::getParameterFromSlider(const Slider* slider) const {
-	if (slider == &inputGainSlider) { return getProcessor().inputGain; }
-	if (slider == &outputGainSlider) { return getProcessor().outputGain; }
-	if (slider == &subPreGainSlider) { return getProcessor().subPreGain; }
-	if (slider == &bpFreqSlider) { return getProcessor().bpFreq; }
-	if (slider == &bpQSlider) { return getProcessor().bpQ; }
-	if (slider == &hystSlider) { return getProcessor().hyst; }
-	if (slider == &colourSlider) { return getProcessor().colour; }
-
+	if (slider == &inputGainSlider) { return getProcessor().paramInputGain; }
+	if (slider == &preSubGainSlider) { return getProcessor().paramPreSubGain; }
+	if (slider == &bpFreqSlider) { return getProcessor().paramBpFreq; }
+	if (slider == &bpQSlider) { return getProcessor().paramBpQ; }
+	if (slider == &lpfFreqSlider) { return getProcessor().paramLpfFreq; }
+	if (slider == &hpfFreqSlider) { return getProcessor().paramHpfFreq; }
+	if (slider == &decaySlider) { return getProcessor().paramDecay; }
+	if (slider == &hystSlider) { return getProcessor().paramHyst; }
+	if (slider == &colourSlider) { return getProcessor().paramColour; }
+	if (slider == &directGainSlider) { return getProcessor().paramDirectGain; }
+	if (slider == &postSubGainSlider) { return getProcessor().paramPostSubGain; }
+	if (slider == &outputGainSlider) { return getProcessor().paramOutputGain; }
 	return nullptr;
 }
 
 AudioProcessorParameter* PrototypeAudioProcessorEditor::getParameterFromButton(const Button* button) const {
-	if (button == &masterBypassButton) { return getProcessor().masterBypass; }
-	if (button == &soloSubButton) { return getProcessor().soloSub; }
+	if (button == &masterBypassButton) { return getProcessor().paramMasterBypass; }
+	if (button == &soloSubButton) { return getProcessor().paramSoloSub; }
+	if (button == &switchFilterButton) { return getProcessor().paramSwitchFilter; }
 }

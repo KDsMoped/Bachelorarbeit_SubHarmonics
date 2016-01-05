@@ -63,13 +63,20 @@ private:
 
 const float defaultMasterBypass = 0.f;
 const float defaultSoloSub = 0.f;
+const float defailtSwitchFilter = 0.f;
+
 const float defaultInputGain = 0.5f;
-const float defaultOutputGain = 0.5f;
-const float defaultSubPreGain = 0.5f;
-const float defaultbpFreq = 1000;
-const float defaultbpQ = 0.707f;
+const float defaultPreSubGain = 0.5f;
+const float defaultBpFreq = 1000.f;
+const float defaultBpQ = 0.707f;
+const float defaultLpfFreq = 900.f;
+const float defaultHpfFreq = 1000.f;
+const float defaultDecay = 5.f;
 const float defaultHyst = 0.025f;
-const float defaultColour = 400.f;
+const float defaultColour = 550.f;
+const float defaultDirectGain = 0.5f;
+const float defaultPostSubGain = 0.5f;
+const float defaultOutputGain = 0.5f;
 
 //==============================================================================
 PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder6)),
@@ -79,15 +86,22 @@ PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadF
 													 biquadPreSubBPF(new BiquadFilter(filterTypeBandPass, filterOrder8))
 													 {
 	// Set up our parameters. The base class will delete them for us.
-	addParameter(masterBypass = new FloatParameter(defaultMasterBypass, 2, "Master Bypass"));
-	addParameter(soloSub = new FloatParameter(defaultSoloSub, 2, "Solo Sub"));
-	addParameter(inputGain = new FloatParameter(defaultInputGain, 0, "Input Gain"));
-	addParameter(outputGain = new FloatParameter(defaultOutputGain, 0, "Output Gain"));
-	addParameter(subPreGain = new FloatParameter(defaultSubPreGain, 0, "Sub Pre Gain"));
-	addParameter(bpFreq = new FloatParameter(defaultbpFreq, 0, "BP Frequency"));
-	addParameter(bpQ = new FloatParameter(defaultbpQ, 0, "BP Q"));
-	addParameter(hyst = new FloatParameter(defaultHyst, 0, "Hysteresis"));
-	addParameter(colour = new FloatParameter(defaultColour, 0, "Colour"));
+	addParameter(paramMasterBypass = new FloatParameter(defaultMasterBypass, 2, "Master Bypass"));
+	addParameter(paramSoloSub = new FloatParameter(defaultSoloSub, 2, "Solo Sub"));
+	addParameter(paramSwitchFilter = new FloatParameter(defailtSwitchFilter, 2, "Switch Filter"));
+
+	addParameter(paramInputGain = new FloatParameter(defaultInputGain, 0, "Input Gain"));
+	addParameter(paramPreSubGain = new FloatParameter(defaultPreSubGain, 0, "Pre Sub Gain"));
+	addParameter(paramBpFreq = new FloatParameter(defaultBpFreq, 0, "BP Frequency"));
+	addParameter(paramBpQ = new FloatParameter(defaultBpQ, 0, "BP Q"));
+	addParameter(paramLpfFreq = new FloatParameter(defaultLpfFreq, 0, "LPF Frequency"));
+	addParameter(paramHpfFreq = new FloatParameter(defaultHpfFreq, 0, "HPF Frequency"));
+	addParameter(paramDecay = new FloatParameter(defaultDecay, 0, "Decay"));
+	addParameter(paramHyst = new FloatParameter(defaultHyst, 0, "Hysteresis"));
+	addParameter(paramColour = new FloatParameter(defaultColour, 0, "Colour"));
+	addParameter(paramDirectGain = new FloatParameter(defaultDirectGain, 0, "Direct Gain"));
+	addParameter(paramPostSubGain = new FloatParameter(defaultPostSubGain, 0, "Post Sub Gain"));
+	addParameter(paramOutputGain = new FloatParameter(defaultOutputGain, 0, "Output Gain"));
 }
 
 PrototypeAudioProcessor::~PrototypeAudioProcessor() {
@@ -98,32 +112,6 @@ const String PrototypeAudioProcessor::getName() const
 {
     return JucePlugin_Name;
 }
-
-/*
-int PrototypeAudioProcessor::getNumParameters()
-{
-    return 0;
-}
-
-float PrototypeAudioProcessor::getParameter (int index)
-{
-    return 0.0f;
-}
-
-void PrototypeAudioProcessor::setParameter (int index, float newValue)
-{
-}
-
-const String PrototypeAudioProcessor::getParameterName (int index)
-{
-    return String();
-}
-
-const String PrototypeAudioProcessor::getParameterText (int index)
-{
-    return String();
-}
-*/
 
 const String PrototypeAudioProcessor::getInputChannelName (int channelIndex) const
 {
@@ -279,10 +267,10 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 		
 		for (int i = 0; i < getBlockSize(); i++) {
 			// Check if bypassed
-			if (masterBypass->getValue() == 0) {
+			if (paramMasterBypass->getValue() == 0) {
 				debugData[i][0] = channelData[i];
 				// Apply Input Gain
-				channelData[i] *= (inputGain->getValue() * 2);
+				channelData[i] *= (paramInputGain->getValue() * 2);
 				// Mono Sum
 				monoData[i] += (channelData[i] / 2);
 			}
@@ -292,26 +280,29 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 
 	for (int i = 0; i < getBlockSize(); i++) {
 		// Check if bypassed
-		if (masterBypass->getValue() == 0) {
+		if (paramMasterBypass->getValue() == 0) {
 			// Store current sample value in buffers for the various signal paths
 			float effectBufferedSample = monoData[i];
 
 			// Applay Sub Pre Gain
-			effectBufferedSample *= (subPreGain->getValue() * 2);
+			effectBufferedSample *= (paramPreSubGain->getValue() * 2);
 
-			// TODO: Signal Conditioning
-			/*
-			// Pre Sub HPF
-			biquadPreSubHPF->setFilterCoeffs(getSampleRate(), hpfFreq->getValue(), 0.71f);
-			biquadPreSubHPF->processFilter(&effectBufferedSample, 0);
 
-			// Pre Sub LPF
-			biquadPreSubLPF->setFilterCoeffs(getSampleRate(), lpfFreq->getValue(), 0.71f);
-			biquadPreSubLPF->processFilter(&effectBufferedSample, 0);
-			*/
-			// Pre Sub BPF
-			biquadPreSubBPF->setFilterCoeffs(getSampleRate(), bpFreq->getValue(), bpQ->getValue());
-			biquadPreSubBPF->processFilter(&effectBufferedSample, 0);
+			// Signal Conditioning
+			if (paramSwitchFilter->getValue() == 0) {
+				// Pre Sub BPF
+				biquadPreSubBPF->setFilterCoeffs(getSampleRate(), paramBpFreq->getValue(), paramBpQ->getValue());
+				biquadPreSubBPF->processFilter(&effectBufferedSample, 0);
+			}
+			else {
+				// Pre Sub LPF
+				biquadPreSubLPF->setFilterCoeffs(getSampleRate(), paramLpfFreq->getValue(), 0.71f);
+				biquadPreSubLPF->processFilter(&effectBufferedSample, 0);
+				// Pre Sub HPF
+				biquadPreSubHPF->setFilterCoeffs(getSampleRate(), paramHpfFreq->getValue(), 0.71f);
+				biquadPreSubHPF->processFilter(&effectBufferedSample, 0);
+			}
+
 			
 			// Forking effect signal paths
 			float rectifierBufferedSample = effectBufferedSample;
@@ -320,7 +311,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 
 			//Envelope Detector
 			double dt = 1. / getSampleRate();
-			float rc = 2.e-3; // X ms release time
+			float rc = paramDecay->getValue() * 1.e-3; // X ms release time
 			double coeff = rc / (rc + dt);
 
 			rectifierBufferedSample = vc;
@@ -340,18 +331,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 				effectBufferedSample = 0.f;
 			}
 			effectBufferedSample = sqrtf(effectBufferedSample);
-
-			/*
-			// TODO: Signal Conditioning
-			// Pre Sub HPF
-			biquadPreSubHPF->setFilterCoeffs(getSampleRate(), hpfFreq->getValue(), 0.71);
-			biquadPreSubHPF->processFilter(&triggerBufferedSample, 0);
-
-			// Pre Sub LPF
-			biquadPreSubLPF->setFilterCoeffs(getSampleRate(), lpfFreq->getValue(), 0.71);
-			biquadPreSubLPF->processFilter(&triggerBufferedSample, 0);
-			*/
-			
+		
 
 			// TODO: first order allpass
 			// ...
@@ -359,7 +339,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 
 			// Trigger Circuit
 			// Schmitt-Trigger
-			float posHyst = hyst->getValue();
+			float posHyst = paramHyst->getValue();
 			float negHyst = posHyst * -1;
 
 			if (triggerBufferedSample > posHyst) {
@@ -391,7 +371,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 
 			// Post Filter
 			// Calculate static filter coefficients
-			biquadPostSubLPF->setFilterCoeffs(getSampleRate(), colour->getValue(), 0.71f);
+			biquadPostSubLPF->setFilterCoeffs(getSampleRate(), paramColour->getValue(), 0.71f);
 			biquadPostSubHPF->setFilterCoeffs(getSampleRate(), 20.f, 0.71f);
 
 			biquadPostSubLPF->processFilter(&effectBufferedSample, 0);
@@ -409,21 +389,21 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 
 		for (int i = 0; i < getBlockSize(); i++) {
 			// Check if bypassed
-			if (masterBypass->getValue() == 0) {
+			if (paramMasterBypass->getValue() == 0) {
 				
-				if (soloSub->getValue() == 1) {
-					channelData[i] = monoData[i];
+				if (paramSoloSub->getValue() == 1) {
+					channelData[i] = monoData[i] * (2 * paramPostSubGain->getValue());
 				}
 				else {
-					 // Mixing Amplifier
-					channelData[i] = (channelData[i] + monoData[i]) / (sqrtf(2.f));
+					// Mixing Amplifier 
+					channelData[i] = ((channelData[i] * (2 * paramDirectGain->getValue())) + (monoData[i] * (2 * paramPostSubGain->getValue()))) / (sqrtf(2.f));
 				}
 
 				
 				//channelData[i] = debugData[i][ch];
 				
 				// Apply Output Gain
-				channelData[i] *= outputGain->getValue();
+				channelData[i] *= paramOutputGain->getValue();
 			}
 			else {
 
@@ -449,18 +429,24 @@ void PrototypeAudioProcessor::getStateInformation (MemoryBlock& destData)
 	// You should use this method to store your parameters in the memory block.
 	
 	// Create an outer XML element..
-	XmlElement xml("MYPLUGINSETTINGS");
+	XmlElement xml("PLUGINSETTINGS");
 
 	// add some attributes to it..
-	xml.setAttribute("master_bypass", masterBypass->getValue());
-	xml.setAttribute("solo_sub", soloSub->getValue());
-	xml.setAttribute("input_gain", inputGain->getValue());
-	xml.setAttribute("output_gain", outputGain->getValue());
-	xml.setAttribute("sub_pre_gain", subPreGain->getValue());
-	xml.setAttribute("bp_frequency", bpFreq->getValue());
-	xml.setAttribute("bp_q", bpQ->getValue());
-	xml.setAttribute("hysteresis", hyst->getValue());
-	xml.setAttribute("colour", colour->getValue());
+	xml.setAttribute("master_bypass", paramMasterBypass->getValue());
+	xml.setAttribute("solo_sub", paramSoloSub->getValue());
+	xml.setAttribute("switch_filter", paramSwitchFilter->getValue());
+	xml.setAttribute("input_gain", paramInputGain->getValue());
+	xml.setAttribute("pre_sub_gain", paramPreSubGain->getValue());
+	xml.setAttribute("bp_frequency", paramBpFreq->getValue());
+	xml.setAttribute("bp_q", paramBpQ->getValue());
+	xml.setAttribute("lpf_frequency", paramLpfFreq->getValue());
+	xml.setAttribute("hpf_frequency", paramHpfFreq->getValue());
+	xml.setAttribute("decay", paramDecay->getValue());
+	xml.setAttribute("hysteresis", paramHyst->getValue());
+	xml.setAttribute("colour", paramColour->getValue());
+	xml.setAttribute("direct_gain", paramDirectGain->getValue());
+	xml.setAttribute("post_sub_gain", paramPostSubGain->getValue());
+	xml.setAttribute("output_gain", paramOutputGain->getValue());
 
 	// then use this helper function to stuff it into the binary blob and return it..
 	copyXmlToBinary(xml, destData);
@@ -477,18 +463,24 @@ void PrototypeAudioProcessor::setStateInformation (const void* data, int sizeInB
 	if (xmlState != nullptr)
 	{
 		// make sure that it's actually our type of XML object..
-		if (xmlState->hasTagName("MYPLUGINSETTINGS"))
+		if (xmlState->hasTagName("PLUGINSETTINGS"))
 		{
 			// ok, now pull out our parameters..
-			masterBypass->setValue((float)xmlState->getDoubleAttribute("master_bypass", masterBypass->getValue()));
-			soloSub->setValue((float)xmlState->getDoubleAttribute("solo_sub", soloSub->getValue()));
-			inputGain->setValue((float)xmlState->getDoubleAttribute("input_gain", inputGain->getValue()));
-			outputGain->setValue((float)xmlState->getDoubleAttribute("output_gain", outputGain->getValue()));
-			subPreGain->setValue((float)xmlState->getDoubleAttribute("sub_pre_gain", subPreGain->getValue()));
-			bpFreq->setValue((float)xmlState->getDoubleAttribute("bp_frequency", bpFreq->getValue()));
-			bpQ->setValue((float)xmlState->getDoubleAttribute("bp_q", bpQ->getValue()));
-			hyst->setValue((float)xmlState->getDoubleAttribute("hysteresis", hyst->getValue()));
-			colour->setValue((float)xmlState->getDoubleAttribute("colour", colour->getValue()));
+			paramMasterBypass->setValue((float)xmlState->getDoubleAttribute("master_bypass", paramMasterBypass->getValue()));
+			paramSoloSub->setValue((float)xmlState->getDoubleAttribute("solo_sub", paramSoloSub->getValue()));
+			paramSwitchFilter->setValue((float)xmlState->getDoubleAttribute("switch_filter", paramSwitchFilter->getValue()));
+			paramInputGain->setValue((float)xmlState->getDoubleAttribute("input_gain", paramInputGain->getValue()));
+			paramPreSubGain->setValue((float)xmlState->getDoubleAttribute("pre_sub_gain", paramPreSubGain->getValue()));
+			paramBpFreq->setValue((float)xmlState->getDoubleAttribute("bp_frequency", paramBpFreq->getValue()));
+			paramBpQ->setValue((float)xmlState->getDoubleAttribute("bp_q", paramBpQ->getValue()));
+			paramLpfFreq->setValue((float)xmlState->getDoubleAttribute("lpf_frequency", paramLpfFreq->getValue()));
+			paramHpfFreq->setValue((float)xmlState->getDoubleAttribute("hpf_frequency", paramHpfFreq->getValue()));
+			paramDecay->setValue((float)xmlState->getDoubleAttribute("decay", paramDecay->getValue()));
+			paramHyst->setValue((float)xmlState->getDoubleAttribute("hysteresis", paramHyst->getValue()));
+			paramColour->setValue((float)xmlState->getDoubleAttribute("colour", paramColour->getValue()));
+			paramDirectGain->setValue((float)xmlState->getDoubleAttribute("direct_gain", paramDirectGain->getValue()));
+			paramPostSubGain->setValue((float)xmlState->getDoubleAttribute("post_sub_gain", paramPostSubGain->getValue()));
+			paramOutputGain->setValue((float)xmlState->getDoubleAttribute("output_gain", paramOutputGain->getValue()));
 		}
 	}
 }
