@@ -8,8 +8,8 @@
               pluginIsSynth="0" pluginWantsMidiIn="0" pluginProducesMidiOut="0"
               pluginSilenceInIsSilenceOut="0" pluginEditorRequiresKeys="0"
               pluginAUExportPrefix="SubHarmonicsAU" pluginRTASCategory="" aaxIdentifier="com.yourcompany.SubHarmonics"
-              pluginAAXCategory="AAX_ePlugInCategory_Dynamics" jucerVersion="4.0.2"
-              companyName="HSD">
+              pluginAAXCategory="AAX_ePlugInCategory_Dynamics" jucerVersion="4.1.0"
+              companyName="HSD" pluginIsMidiEffectPlugin="0">
   <MAINGROUP id="eZk2Mo" name="SubHarmonics">
     <GROUP id="{2A5C94E9-00B1-CCC0-91A2-FE8FDC71F9E6}" name="Source">
       <FILE id="JeAQVx" name="SignalProcessingHelpers.cpp" compile="1" resource="0"
