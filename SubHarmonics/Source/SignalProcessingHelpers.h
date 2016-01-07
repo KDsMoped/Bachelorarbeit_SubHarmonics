@@ -68,35 +68,22 @@ class Ramper
 {
 public:
 	Ramper();
+	~Ramper();
 
-	/** Sets the step amount that the ramper will use. You can overwrite this value by supplying a step number in setTarget. */
 	void setStepAmount(int newStepAmount);
-	
-	/** sets the new target and recalculates the step size using either the supplied step number or the step amount previously set by setStepAmount(). */
-	void setTarget(float currentValue, float newTarget, int numberOfSteps = -1) {
-		if (numberOfSteps != -1) stepDelta = (newTarget - currentValue) / numberOfSteps;
-		else if (stepAmount != -1) stepDelta = (newTarget - currentValue) / stepAmount;
-		else jassertfalse; // Either the step amount should be set, or a new step amount should be supplied
-		targetValue = newTarget;
-	};
-	
-	/** Sets the ramper value and the target to the new value and stops ramping. */
-	void setValue(float newValue) {
-		targetValue = newValue;
-		stepDelta = 0.0f;
-	};
+	void setTarget(float currentValue, float newTarget, int numberOfSteps);
+	void setValue(float newValue);
 
-	/** ramps the supplied value and returns true if the targetValue is reached. */
-	inline bool ramp(float &valueToChange) {
-		valueToChange += stepDelta;
-		return abs(targetValue - valueToChange) > 0.001;
-	};
+	bool ramp(float &valueToChange);
 
 private:
-	float targetValue, stepDelta;
+	float targetValue;
+	float stepDelta;
 	int stepAmount;
 };
 
-	//==============================================================================
+
+//==============================================================================
+
 
 #endif  // SIGNALPROCESSINGHELPERS_H_INCLUDED
