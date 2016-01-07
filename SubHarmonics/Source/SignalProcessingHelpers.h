@@ -20,7 +20,9 @@ enum {
 	filterTypeHighPass = 0,
 	filterTypeLowPass,
 	filterTypeBandPass,
+	filterTypeAllPass,
 
+	filterOrder1 = 1,
 	filterOrder2 = 2,
 	filterOrder4 = 4,
 	filterOrder6 = 6,
@@ -51,7 +53,32 @@ private:
 	float coeffA1;
 	float coeffA2;
 
-	float ringBuffer[3][2][5];
+	float buffer[3][2][5];
+};
+
+
+//==============================================================================
+
+
+class AllPassFilter {
+public:
+	AllPassFilter(int filterOrder);
+	~AllPassFilter();
+
+	void processFilter(float *leSample, int leChannel);
+	void setFilterCoeffs(float sr, float f, float q);
+	void flushBuffer();
+
+private:
+	int filterOrder;
+
+	float coeffB0;
+	float coeffB1;
+	float coeffB2;
+	float coeffA1;
+	float coeffA2;
+
+	float buffer[3][2];
 };
 
 

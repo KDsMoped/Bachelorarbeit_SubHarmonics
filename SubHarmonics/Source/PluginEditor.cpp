@@ -118,7 +118,7 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 
 	// Set properties for the Hysteresis Slider
 	hystSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
-	hystSlider.setRange(0, 1.f, .0001f);
+	hystSlider.setRange(0, .1f, .0001f);
 	hystSlider.setSliderSnapsToMousePosition(false);
 	hystSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
 	hystSlider.addListener(this);

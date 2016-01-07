@@ -79,11 +79,12 @@ const float defaultPostSubGain = 0.5f;
 const float defaultOutputGain = 0.5f;
 
 //==============================================================================
-PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder6)),
-													 biquadPreSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder6)),
+PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder8)),
+													 biquadPreSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder8)),
 													 biquadPostSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder6)),
-													 biquadPostSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder6)),
-													 biquadPreSubBPF(new BiquadFilter(filterTypeBandPass, filterOrder8))
+													 biquadPostSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder2)),
+													 biquadPreSubBPF(new BiquadFilter(filterTypeBandPass, filterOrder8)),
+													 triggerAllPassFilter(new AllPassFilter(filterOrder1))
 													 {
 	// Set up our parameters. The base class will delete them for us.
 	addParameter(paramMasterBypass = new FloatParameter(defaultMasterBypass, 2, "Master Bypass"));
@@ -208,6 +209,7 @@ void PrototypeAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
 	biquadPreSubHPF->flushBuffer();
 	biquadPreSubLPF->flushBuffer();
 	biquadPreSubBPF->flushBuffer();
+	triggerAllPassFilter->flushBuffer();
 }
 
 void PrototypeAudioProcessor::releaseResources()
@@ -268,7 +270,6 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 		for (int i = 0; i < getBlockSize(); i++) {
 			// Check if bypassed
 			if (paramMasterBypass->getValue() == 0) {
-				debugData[i][0] = channelData[i];
 				// Apply Input Gain
 				channelData[i] *= (paramInputGain->getValue() * 2);
 				// Mono Sum
@@ -332,10 +333,13 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			}
 			effectBufferedSample = sqrtf(effectBufferedSample);
 		
+			debugData[i][0] = triggerBufferedSample;
 
 			// TODO: first order allpass
-			// ...
+			triggerAllPassFilter->setFilterCoeffs(getSampleRate(), paramBpFreq->getValue(), 0);
+			triggerAllPassFilter->processFilter(&triggerBufferedSample, 0);
 
+			
 
 			// Trigger Circuit
 			// Schmitt-Trigger
@@ -358,7 +362,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			// Counter
 			if (triggerChangeCount == 2) {
 				sign *= -1;
-				ramper->setTarget(signumGain, sign, 10);
+				ramper->setTarget(signumGain, sign, 0);
 				triggerChangeCount = 0;
 			}
 			
@@ -367,19 +371,18 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			if (signumGain > 1.f) { signumGain = 1.f; }
 			if (signumGain < -1.f) { signumGain = -1.f; }
 			effectBufferedSample *= signumGain;
-			
+		
+			debugData[i][1] = effectBufferedSample;
 
 			// Post Filter
 			// Calculate static filter coefficients
 			biquadPostSubLPF->setFilterCoeffs(getSampleRate(), paramColour->getValue(), 0.71f);
-			biquadPostSubHPF->setFilterCoeffs(getSampleRate(), 20.f, 0.71f);
+			biquadPostSubHPF->setFilterCoeffs(getSampleRate(), 19.f, 0.71f);
 
 			biquadPostSubLPF->processFilter(&effectBufferedSample, 0);
 			//biquadPostSubHPF->processFilter(&effectBufferedSample, 0);
 			
-			//monoData[i] = triggerBufferedSample;
 			monoData[i] = effectBufferedSample;
-			debugData[i][1] = monoData[i];
 		}
 	}
 
