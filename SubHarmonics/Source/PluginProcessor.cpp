@@ -84,7 +84,7 @@ PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadF
 													 biquadPostSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder6)),
 													 biquadPostSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder2)),
 													 biquadPreSubBPF(new BiquadFilter(filterTypeBandPass, filterOrder8)),
-													 triggerAllPassFilter(new AllPassFilter(filterOrder1))
+													 biquadTriggerAPF(new BiquadFilter(filterTypeAllPass, filterOrder1))
 													 {
 	// Set up our parameters. The base class will delete them for us.
 	addParameter(paramMasterBypass = new FloatParameter(defaultMasterBypass, 2, "Master Bypass"));
@@ -209,7 +209,7 @@ void PrototypeAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
 	biquadPreSubHPF->flushBuffer();
 	biquadPreSubLPF->flushBuffer();
 	biquadPreSubBPF->flushBuffer();
-	triggerAllPassFilter->flushBuffer();
+	biquadTriggerAPF->flushBuffer();
 }
 
 void PrototypeAudioProcessor::releaseResources()
@@ -335,13 +335,11 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 		
 			debugData[i][0] = triggerBufferedSample;
 
-			// TODO: first order allpass
-			triggerAllPassFilter->setFilterCoeffs(getSampleRate(), paramBpFreq->getValue(), 0);
-			triggerAllPassFilter->processFilter(&triggerBufferedSample, 0);
-
-			
-
 			// Trigger Circuit
+			// Optional first order allpass
+			biquadTriggerAPF->setFilterCoeffs(getSampleRate(), paramBpFreq->getValue(), 0);
+			biquadTriggerAPF->processFilter(&triggerBufferedSample, 0);
+
 			// Schmitt-Trigger
 			float posHyst = paramHyst->getValue();
 			float negHyst = posHyst * -1;

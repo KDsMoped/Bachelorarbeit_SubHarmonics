@@ -60,31 +60,6 @@ private:
 //==============================================================================
 
 
-class AllPassFilter {
-public:
-	AllPassFilter(int filterOrder);
-	~AllPassFilter();
-
-	void processFilter(float *leSample, int leChannel);
-	void setFilterCoeffs(float sr, float f, float q);
-	void flushBuffer();
-
-private:
-	int filterOrder;
-
-	float coeffB0;
-	float coeffB1;
-	float coeffB2;
-	float coeffA1;
-	float coeffA2;
-
-	float buffer[3][2];
-};
-
-
-//==============================================================================
-
-
 /** A Ramper applies linear ramping to a value.
 *    @ingroup utility
 *
@@ -92,13 +67,10 @@ private:
 class Ramper
 {
 public:
-	Ramper() : targetValue(0.0f),
-			   stepDelta(0.0f),
-			   stepAmount(-1)
-	{};
+	Ramper();
 
 	/** Sets the step amount that the ramper will use. You can overwrite this value by supplying a step number in setTarget. */
-	void setStepAmount(int newStepAmount) { stepAmount = newStepAmount; };
+	void setStepAmount(int newStepAmount);
 	
 	/** sets the new target and recalculates the step size using either the supplied step number or the step amount previously set by setStepAmount(). */
 	void setTarget(float currentValue, float newTarget, int numberOfSteps = -1) {

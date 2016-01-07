@@ -84,18 +84,36 @@ void BiquadFilter::setFilterCoeffs(float sr, float f, float q) {
 	float k = tan((float_Pi * f) / sr);
 
 	if (filterType == filterTypeHighPass) {
-		coeffB0 = q / ((pow(k, 2) * q) + k + q);
-		coeffB1 = (-2 * q) / ((pow(k, 2) * q) + k + q);
-		coeffB2 = coeffB0;
-		coeffA1 = (2 * q * (pow(k, 2) - 1)) / ((pow(k, 2) * q) + k + q);
-		coeffA2 = ((pow(k, 2) * q) - k + q) / ((pow(k, 2) * q) + k + q);
+		if (filterOrder == filterOrder1){
+			coeffB0 = 1 / (k + 1);
+			coeffB1 = coeffB0 * -1;
+			coeffB2 = 0;
+			coeffA1 = (k - 1) / (k + 1);
+			coeffA2 = 0;
+		}
+		else {
+			coeffB0 = q / ((pow(k, 2) * q) + k + q);
+			coeffB1 = (-2 * q) / ((pow(k, 2) * q) + k + q);
+			coeffB2 = coeffB0;
+			coeffA1 = (2 * q * (pow(k, 2) - 1)) / ((pow(k, 2) * q) + k + q);
+			coeffA2 = ((pow(k, 2) * q) - k + q) / ((pow(k, 2) * q) + k + q);
+		}
 	}
 	if (filterType == filterTypeLowPass) {
-		coeffB0 = (pow(k, 2) * q) / ((pow(k, 2) * q) + k + q);
-		coeffB1 = (2 * (pow(k, 2) * q)) / ((pow(k, 2) * q) + k + q);
-		coeffB2 = coeffB0;
-		coeffA1 = (2 * q * (pow(k, 2) - 1)) / ((pow(k, 2) * q) + k + q);
-		coeffA2 = ((pow(k, 2) * q) - k + q) / ((pow(k, 2) * q) + k + q);
+		if (filterOrder == filterOrder1) {
+			coeffB0 = k / (k + 1);
+			coeffB1 = coeffB0;
+			coeffB2 = 0;
+			coeffA1 = (k - 1) / (k + 1);
+			coeffA2 = 0;
+		}
+		else {
+			coeffB0 = (pow(k, 2) * q) / ((pow(k, 2) * q) + k + q);
+			coeffB1 = (2 * (pow(k, 2) * q)) / ((pow(k, 2) * q) + k + q);
+			coeffB2 = coeffB0;
+			coeffA1 = (2 * q * (pow(k, 2) - 1)) / ((pow(k, 2) * q) + k + q);
+			coeffA2 = ((pow(k, 2) * q) - k + q) / ((pow(k, 2) * q) + k + q);
+		}
 	}
 	if (filterType == filterTypeBandPass) {
 		coeffB0 = k / ((pow(k, 2) * q) + k + q);
@@ -104,6 +122,23 @@ void BiquadFilter::setFilterCoeffs(float sr, float f, float q) {
 		coeffA1 = (2 * q * (pow(k, 2) - 1)) / ((pow(k, 2) * q) + k + q);
 		coeffA2 = ((pow(k, 2) * q) - k + q) / ((pow(k, 2) * q) + k + q);
 	}
+	if (filterType == filterTypeAllPass) {
+		if (filterOrder == filterOrder1) {
+			coeffB0 = (k - 1) / (k + 1);
+			coeffB1 = 1;
+			coeffB2 = 0;
+			coeffA1 = coeffB0;
+			coeffA2 = 0;
+		}
+		else {
+			coeffB0 = ((pow(k, 2) * q) - k + q) / ((pow(k, 2) * q) + k + q);
+			coeffB1 = (2 * q * (pow(k, 2) - 1)) / ((pow(k, 2) * q) + k + q);
+			coeffB2 = 1;
+			coeffA1 = coeffB1;
+			coeffA2 = coeffB0;
+		}
+	}
+	
 }
 
 
@@ -121,56 +156,11 @@ void BiquadFilter::flushBuffer() {
 //==============================================================================
 
 
-AllPassFilter::AllPassFilter(int filterOrder) : filterOrder(filterOrder) {}
-AllPassFilter::~AllPassFilter() { delete buffer; }
+Ramper::Ramper() : targetValue(0.0f),
+				   stepDelta(0.0f),
+				   stepAmount(-1)
+				   {};
 
-
-void AllPassFilter::processFilter(float *leSample, int ch) {
-	
-	float x = *leSample;
-	
-	float w1 = buffer[1][ch];
-	float w2 = buffer[2][ch];
-
-	float w = x - (coeffA1 * w1) - (coeffA2 * w2);
-	float y = (coeffB0 * w) + (coeffB1 * w1) + (coeffB2 * w2);
-
-	buffer[2][ch] = w1;
-	buffer[1][ch] = w;
-
-	*leSample = y;
+void Ramper::setStepAmount(int newStepAmount) { 
+	stepAmount = newStepAmount; 
 }
-
-
-void AllPassFilter::setFilterCoeffs(float sr, float f, float q) {
-	float k = tan((float_Pi * f) / sr);
-	if (filterOrder == filterOrder1) {
-		float alpha = (k - 1) / (k + 1);
-		coeffB0 = alpha;
-		coeffB1 = 1;
-		coeffB2 = 0;
-		coeffA1 = alpha;
-		coeffA2 = 0;
-	}
-	if (filterOrder == filterOrder2) {
-		float d = 1 / q;
-		float j = 1 / (1 + (d*k) + pow(k, 2));
-		coeffB0 = (1 - k*d + pow(k, 2)) * j;
-		coeffB1 = 2 * (pow(k, 2) - 1) * j;
-		coeffB2 = 1;
-		coeffA1 = coeffB1;
-		coeffA2 = coeffB0;
-	}
-}
-
-
-void AllPassFilter::flushBuffer() {
-	for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < 2; j++) {
-			buffer[i][j] = 0.f;
-		}
-	}
-}
-
-
-//==============================================================================

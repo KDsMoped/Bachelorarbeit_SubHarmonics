@@ -86,7 +86,7 @@ private:
 	BiquadFilter *biquadPreSubLPF;
 	BiquadFilter *biquadPostSubLPF;
 	BiquadFilter *biquadPostSubHPF;
-	AllPassFilter * triggerAllPassFilter;
+	BiquadFilter * biquadTriggerAPF;
 	
 	Ramper *ramper;
 
