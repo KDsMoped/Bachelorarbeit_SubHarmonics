@@ -23,24 +23,5 @@
     <string>HSD</string>
     <key>NSHighResolutionCapable</key>
     <true/>
-    <key>AudioComponents</key>
-    <array>
-      <dict>
-        <key>name</key>
-        <string>HSD: SubHarmonics</string>
-        <key>description</key>
-        <string>SubHarmonics</string>
-        <key>factoryFunction</key>
-        <string>SubHarmonicsAUFactory</string>
-        <key>manufacturer</key>
-        <string>HSD</string>
-        <key>type</key>
-        <string>aufx</string>
-        <key>subtype</key>
-        <string>SubH</string>
-        <key>version</key>
-        <integer>1280</integer>
-      </dict>
-    </array>
   </dict>
 </plist>

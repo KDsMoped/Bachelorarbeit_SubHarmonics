@@ -17,7 +17,7 @@
 BiquadFilter::BiquadFilter(int filterType, int filterOrder) : filterType(filterType), 
 															  filterOrder(filterOrder) 
 															  {}
-BiquadFilter::~BiquadFilter() { delete buffer; }
+BiquadFilter::~BiquadFilter() { /*delete buffer;*/ }
 
 
 void BiquadFilter::processFilter(float *leSample, int leChannel) {
