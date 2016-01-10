@@ -4,7 +4,7 @@
               bundleIdentifier="com.yourcompany.SubHarmonics" includeBinaryInAppConfig="1"
               buildVST="1" buildVST3="1" buildAU="0" buildRTAS="0" buildAAX="0"
               pluginName="SubHarmonics" pluginDesc="SubHarmonics" pluginManufacturer="HSD"
-              pluginManufacturerCode="HSD" pluginCode="SubH" pluginChannelConfigs="{1, 1}, {2, 2}"
+              pluginManufacturerCode="HSD" pluginCode="SubH" pluginChannelConfigs=""
               pluginIsSynth="0" pluginWantsMidiIn="0" pluginProducesMidiOut="0"
               pluginSilenceInIsSilenceOut="0" pluginEditorRequiresKeys="0"
               pluginAUExportPrefix="SubHarmonicsAU" pluginRTASCategory="" aaxIdentifier="com.yourcompany.SubHarmonics"

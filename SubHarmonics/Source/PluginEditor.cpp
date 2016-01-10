@@ -86,7 +86,7 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 
 	// Set properties for the HPF Frequency Slider
 	hpfFreqSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
-	hpfFreqSlider.setRange(40, 1000, 1);
+	hpfFreqSlider.setRange(20, 1000, 1);
 	hpfFreqSlider.setSliderSnapsToMousePosition(false);
 	hpfFreqSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
 	hpfFreqSlider.setTextValueSuffix(" Hz");

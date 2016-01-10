@@ -84,7 +84,9 @@ PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadF
 													 biquadPostSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder6)),
 													 biquadPostSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder2)),
 													 biquadPreSubBPF(new BiquadFilter(filterTypeBandPass, filterOrder8)),
-													 biquadTriggerAPF(new BiquadFilter(filterTypeAllPass, filterOrder1))
+													 biquadTriggerAPF(new BiquadFilter(filterTypeAllPass, filterOrder1)),
+													 biquadPreTriggerLPF(new BiquadFilter(filterTypeLowPass, filterOrder4)),
+													 biquadCompAPF(new BiquadFilter(filterTypeAllPass, filterOrder2))
 													 {
 	// Set up our parameters. The base class will delete them for us.
 	addParameter(paramMasterBypass = new FloatParameter(defaultMasterBypass, 2, "Master Bypass"));
@@ -210,6 +212,8 @@ void PrototypeAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
 	biquadPreSubLPF->flushBuffer();
 	biquadPreSubBPF->flushBuffer();
 	biquadTriggerAPF->flushBuffer();
+	biquadPreTriggerLPF->flushBuffer();
+	biquadCompAPF->flushBuffer();
 }
 
 void PrototypeAudioProcessor::releaseResources()
@@ -239,22 +243,24 @@ void PrototypeAudioProcessor::reset()
 void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& midiMessages)
 {
 	const int numSamples = buffer.getNumSamples();
+	const int numChannels = getMainBusNumInputChannels();
+
 
     // Clearing obsolete output channels
-	for(int i = getNumInputChannels(); i < getNumOutputChannels(); i++) {
+	for (int i = numChannels; i < getNumOutputChannels(); i++) {
 		buffer.clear(i, 0, numSamples);
 	}
 
 
 	float monoData[4096];
-	for (int i = 0; i < getBlockSize(); i++) {
+	for (int i = 0; i < numSamples; i++) {
 		monoData[i] = 0;
 	}
 
 
 	// Debug Signal Buffer
 	float debugData[4096][2];
-	for (int i = 0; i < getBlockSize(); i++) {
+	for (int i = 0; i < numSamples; i++) {
 		for (int j = 0; j < 2; j++) {
 			monoData[i] = 0;
 		}
@@ -263,11 +269,11 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
     // This is the place where you'd normally do the guts of your plugin's
     // audio processing...
 	
-	for (int ch = 0; ch < getNumInputChannels(); ch++) {
+	for (int ch = 0; ch < numChannels; ch++) {
 		// Retrieve pointers to modify each buffers channel data
 		float* channelData = buffer.getWritePointer(ch);
 		
-		for (int i = 0; i < getBlockSize(); i++) {
+		for (int i = 0; i < numSamples; i++) {
 			// Check if bypassed
 			if (paramMasterBypass->getValue() == 0) {
 				// Apply Input Gain
@@ -279,15 +285,14 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 	}
 				
 
-	for (int i = 0; i < getBlockSize(); i++) {
+	for (int i = 0; i < numSamples; i++) {
 		// Check if bypassed
 		if (paramMasterBypass->getValue() == 0) {
 			// Store current sample value in buffers for the various signal paths
 			float effectBufferedSample = monoData[i];
 
 			// Applay Sub Pre Gain
-			effectBufferedSample *= (paramPreSubGain->getValue() * 2);
-
+			effectBufferedSample *= (paramPreSubGain->getValue() * 4);
 
 			// Signal Conditioning
 			if (paramSwitchFilter->getValue() == 0) {
@@ -297,10 +302,10 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			}
 			else {
 				// Pre Sub LPF
-				biquadPreSubLPF->setFilterCoeffs(getSampleRate(), paramLpfFreq->getValue(), 0.71f);
+				biquadPreSubLPF->setFilterCoeffs(getSampleRate(), paramLpfFreq->getValue(), 0.717f);
 				biquadPreSubLPF->processFilter(&effectBufferedSample, 0);
 				// Pre Sub HPF
-				biquadPreSubHPF->setFilterCoeffs(getSampleRate(), paramHpfFreq->getValue(), 0.71f);
+				biquadPreSubHPF->setFilterCoeffs(getSampleRate(), paramHpfFreq->getValue(), 0.717f);
 				biquadPreSubHPF->processFilter(&effectBufferedSample, 0);
 			}
 
@@ -332,10 +337,16 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 				effectBufferedSample = 0.f;
 			}
 			effectBufferedSample = sqrtf(effectBufferedSample);
+
+			biquadCompAPF->setFilterCoeffs(getSampleRate(), 50, 0.717f);
+			biquadCompAPF->processFilter(&effectBufferedSample, 0);
 		
-			debugData[i][0] = triggerBufferedSample;
+			//debugData[i][0] = triggerBufferedSample;
 
 			// Trigger Circuit
+			biquadPreTriggerLPF->setFilterCoeffs(getSampleRate(), 50, 0.717f);
+			biquadPreTriggerLPF->processFilter(&triggerBufferedSample, 0);
+
 			// Optional first order allpass
 			biquadTriggerAPF->setFilterCoeffs(getSampleRate(), paramBpFreq->getValue(), 0);
 			biquadTriggerAPF->processFilter(&triggerBufferedSample, 0);
@@ -370,12 +381,12 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			if (signumGain < -1.f) { signumGain = -1.f; }
 			effectBufferedSample *= signumGain;
 		
-			debugData[i][1] = effectBufferedSample;
+			debugData[i][0] = effectBufferedSample;
 
 			// Post Filter
 			// Calculate static filter coefficients
-			biquadPostSubLPF->setFilterCoeffs(getSampleRate(), paramColour->getValue(), 0.71f);
-			biquadPostSubHPF->setFilterCoeffs(getSampleRate(), 19.f, 0.71f);
+			biquadPostSubLPF->setFilterCoeffs(getSampleRate(), paramColour->getValue(), 0.717f);
+			biquadPostSubHPF->setFilterCoeffs(getSampleRate(), 19.f, 0.717f);
 
 			biquadPostSubLPF->processFilter(&effectBufferedSample, 0);
 			//biquadPostSubHPF->processFilter(&effectBufferedSample, 0);
@@ -384,11 +395,11 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 		}
 	}
 
-	for (int ch = 0; ch < getNumInputChannels(); ch++) {
+	for (int ch = 0; ch < numChannels; ch++) {
 		// Retrieve pointers to modify each buffers channel data
 		float* channelData = buffer.getWritePointer(ch);
 
-		for (int i = 0; i < getBlockSize(); i++) {
+		for (int i = 0; i < numSamples; i++) {
 			// Check if bypassed
 			if (paramMasterBypass->getValue() == 0) {
 				
@@ -407,7 +418,16 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 				channelData[i] *= paramOutputGain->getValue();
 			}
 			else {
-
+				/*
+				if (ch == 0) {
+				biquadCompAPF->setFilterCoeffs(getSampleRate(), 40, 0.717f);
+				biquadCompAPF->processFilter(&channelData[i], ch);
+				}
+				else {
+				biquadPreTriggerLPF->setFilterCoeffs(getSampleRate(), 40, 0.717f);
+				biquadPreTriggerLPF->processFilter(&channelData[i], ch);
+				}
+				*/
 			}
 		}
 	}
