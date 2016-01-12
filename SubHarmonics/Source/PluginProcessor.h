@@ -89,10 +89,13 @@ private:
 	BiquadFilter *biquadTriggerAPF;
 	BiquadFilter *biquadPostSubLPF;
 	BiquadFilter *biquadPostSubHPF;
+
+	PeakDetector *peakDetector;
+
+	Compressor *lvlCompensationCompressor;
 	
 	Ramper *ramper;
 
-	float vc;
 	int sign;
 	float signumGain;
 	int schmittTriggerStatus;

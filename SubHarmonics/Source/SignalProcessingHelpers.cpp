@@ -156,12 +156,63 @@ void BiquadFilter::flushBuffer() {
 //==============================================================================
 
 
+float PeakDetector::calcEnvelope(float in, float timeConstant, int samplerate) {
+	float dt = 1.f / samplerate;
+	float rc = timeConstant * 1.e-3; // X ms release time
+	float coeff = rc / (rc + dt);
+	
+	float x = in;
+	float y = vc;
+	float rect = fabs(x); // Rectifier(diodes)
+	vc = (rect > vc ? rect : coeff*vc);
+
+	return y;
+}
+
+void PeakDetector::flushVC() {
+	vc = 0.f;
+}
+
+
+//==============================================================================
+
+
+float Compressor::calcGain(float x, float threshold, float ratio, float release, int samplerate) {
+	// Set slope variable
+	float cs = 1.f - (1.f / ratio);
+
+	// -limiting?
+	// -soft knee with lagrange?
+
+	// Envelope detector
+	float env = peakDetector->calcEnvelope(x, release, samplerate);
+	
+	// Convert Envelope to logarithmic value
+	env = 20 * log(env);
+
+	// Compute gain; Threshold and detection values in dB
+	float y = cs * (threshold - env);
+
+	// Clamp; this allows ratios of 1:1 to still operate
+	y = fminf(0.f, y);
+
+	// Convert to linear values
+	return pow(10.f, y / 20.f);
+}
+
+void Compressor::flushDetector() {
+	peakDetector->flushVC();
+}
+
+
+//==============================================================================
+
+
 Ramper::Ramper() : targetValue(0.0f),
 				   stepDelta(0.0f),
 				   stepAmount(-1)
 				   {};
 
-Ramper::~Ramper() {}
 
 /** Sets the step amount that the ramper will use. You can overwrite this value by supplying a step number in setTarget. */
 void Ramper::setStepAmount(int newStepAmount) { 

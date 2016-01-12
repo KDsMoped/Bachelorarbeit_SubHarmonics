@@ -86,7 +86,9 @@ PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadF
 													 biquadPreSubBPF(new BiquadFilter(filterTypeBandPass, filterOrder8)),
 													 biquadTriggerAPF(new BiquadFilter(filterTypeAllPass, filterOrder1)),
 													 biquadPreTriggerLPF(new BiquadFilter(filterTypeLowPass, filterOrder4)),
-													 biquadCompAPF(new BiquadFilter(filterTypeAllPass, filterOrder2))
+													 biquadCompAPF(new BiquadFilter(filterTypeAllPass, filterOrder2)),
+													 peakDetector(new PeakDetector()),
+													 lvlCompensationCompressor(new Compressor())
 													 {
 	// Set up our parameters. The base class will delete them for us.
 	addParameter(paramMasterBypass = new FloatParameter(defaultMasterBypass, 2, "Master Bypass"));
@@ -193,9 +195,6 @@ void PrototypeAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
-
-	// Reset envelope detector capacitor voltage
-	vc = 0.f;
 	
 	triggerChangeCount = 0;
 	sign = 1;
@@ -214,6 +213,11 @@ void PrototypeAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
 	biquadTriggerAPF->flushBuffer();
 	biquadPreTriggerLPF->flushBuffer();
 	biquadCompAPF->flushBuffer();
+
+	peakDetector->flushVC();
+
+	lvlCompensationCompressor->flushDetector();
+	
 }
 
 void PrototypeAudioProcessor::releaseResources()
@@ -229,7 +233,9 @@ void PrototypeAudioProcessor::reset()
 	// means there's been a break in the audio's continuity.
 	
 	// Reset envelope detector capacitor voltage
-	vc = 0.f;
+	peakDetector->flushVC();
+
+	lvlCompensationCompressor->flushDetector();
 
 	triggerChangeCount = 0;
 	sign = 1;
@@ -244,6 +250,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 {
 	const int numSamples = buffer.getNumSamples();
 	const int numChannels = getMainBusNumInputChannels();
+	const int sampleRate = getSampleRate();
 
 
     // Clearing obsolete output channels
@@ -297,37 +304,26 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			// Signal Conditioning
 			if (paramSwitchFilter->getValue() == 0) {
 				// Pre Sub BPF
-				biquadPreSubBPF->setFilterCoeffs(getSampleRate(), paramBpFreq->getValue(), paramBpQ->getValue());
+				biquadPreSubBPF->setFilterCoeffs(sampleRate, paramBpFreq->getValue(), paramBpQ->getValue());
 				biquadPreSubBPF->processFilter(&effectBufferedSample, 0);
 			}
 			else {
 				// Pre Sub LPF
-				biquadPreSubLPF->setFilterCoeffs(getSampleRate(), paramLpfFreq->getValue(), 0.717f);
+				biquadPreSubLPF->setFilterCoeffs(getSampleRate(), paramLpfFreq->getValue(), 0.707f);
 				biquadPreSubLPF->processFilter(&effectBufferedSample, 0);
 				// Pre Sub HPF
-				biquadPreSubHPF->setFilterCoeffs(getSampleRate(), paramHpfFreq->getValue(), 0.717f);
+				biquadPreSubHPF->setFilterCoeffs(getSampleRate(), paramHpfFreq->getValue(), 0.707f);
 				biquadPreSubHPF->processFilter(&effectBufferedSample, 0);
 			}
 
 			
 			// Forking effect signal paths
-			float rectifierBufferedSample = effectBufferedSample;
 			float triggerBufferedSample = effectBufferedSample;
 
 
-			//Envelope Detector
-			double dt = 1. / getSampleRate();
-			float rc = paramDecay->getValue() * 1.e-3; // X ms release time
-			double coeff = rc / (rc + dt);
+			// Peak Detector to generate the Offset "1"
+			float rectifierBufferedSample = peakDetector->calcEnvelope(effectBufferedSample, paramDecay->getValue(), sampleRate);
 
-			rectifierBufferedSample = vc;
-			double y = effectBufferedSample;
-			double rect = fabs(y); // Rectifier(diodes)
-			vc = (rect > vc ? rect : coeff*vc);
-
-			if (rectifierBufferedSample < 0.f) {
-				rectifierBufferedSample = 0.f;
-			}
 
 			// Summing Unit
 			effectBufferedSample = (effectBufferedSample + rectifierBufferedSample) / 2;
@@ -338,18 +334,34 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			}
 			effectBufferedSample = sqrtf(effectBufferedSample);
 
-			biquadCompAPF->setFilterCoeffs(getSampleRate(), 50, 0.717f);
+			debugData[i][1] = effectBufferedSample;
+
+			biquadCompAPF->setFilterCoeffs(sampleRate, 40, 0.707f);
 			biquadCompAPF->processFilter(&effectBufferedSample, 0);
 		
-			//debugData[i][0] = triggerBufferedSample;
+			
 
 			// Trigger Circuit
-			biquadPreTriggerLPF->setFilterCoeffs(getSampleRate(), 50, 0.717f);
-			biquadPreTriggerLPF->processFilter(&triggerBufferedSample, 0);
 
 			// Optional first order allpass
-			biquadTriggerAPF->setFilterCoeffs(getSampleRate(), paramBpFreq->getValue(), 0);
+			biquadTriggerAPF->setFilterCoeffs(sampleRate, paramBpFreq->getValue(), 0);
 			biquadTriggerAPF->processFilter(&triggerBufferedSample, 0);
+
+			// 
+			
+			biquadPreTriggerLPF->setFilterCoeffs(sampleRate, 40, 0.707f);
+			biquadPreTriggerLPF->processFilter(&triggerBufferedSample, 0);
+
+			
+			// Compressor
+			debugData[i][0] = triggerBufferedSample;
+			float compGain = lvlCompensationCompressor->calcGain(triggerBufferedSample, -48, 10, 200, sampleRate);
+			triggerBufferedSample *= compGain;
+			
+			// Make up gain
+			triggerBufferedSample *= 30;
+			
+			debugData[i][1] = triggerBufferedSample;
 
 			// Schmitt-Trigger
 			float posHyst = paramHyst->getValue();
@@ -371,7 +383,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			// Counter
 			if (triggerChangeCount == 2) {
 				sign *= -1;
-				ramper->setTarget(signumGain, sign, 0);
+				ramper->setTarget(signumGain, sign, 10);
 				triggerChangeCount = 0;
 			}
 			
@@ -381,12 +393,11 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			if (signumGain < -1.f) { signumGain = -1.f; }
 			effectBufferedSample *= signumGain;
 		
-			debugData[i][0] = effectBufferedSample;
 
 			// Post Filter
 			// Calculate static filter coefficients
-			biquadPostSubLPF->setFilterCoeffs(getSampleRate(), paramColour->getValue(), 0.717f);
-			biquadPostSubHPF->setFilterCoeffs(getSampleRate(), 19.f, 0.717f);
+			biquadPostSubLPF->setFilterCoeffs(sampleRate, paramColour->getValue(), 0.707f);
+			biquadPostSubHPF->setFilterCoeffs(sampleRate, 19.f, 0.707f);
 
 			biquadPostSubLPF->processFilter(&effectBufferedSample, 0);
 			//biquadPostSubHPF->processFilter(&effectBufferedSample, 0);

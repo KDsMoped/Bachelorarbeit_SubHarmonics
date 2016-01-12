@@ -60,6 +60,38 @@ private:
 //==============================================================================
 
 
+class PeakDetector {
+public:
+	PeakDetector() {}
+	~PeakDetector() {}
+
+	float calcEnvelope(float x, float timeConstant, int samplerate);
+	void flushVC();
+
+private:
+	float vc;
+};
+
+
+//==============================================================================
+
+
+class Compressor {
+public:
+	Compressor() : peakDetector(new PeakDetector) {}
+	~Compressor() { delete peakDetector; }
+
+	float calcGain(float x, float threshold, float ratio, float release, int samperate);
+	void flushDetector();
+
+private:
+	PeakDetector *peakDetector;
+};
+
+
+//==============================================================================
+
+
 /** A Ramper applies linear ramping to a value.
 *    @ingroup utility
 *
@@ -68,7 +100,7 @@ class Ramper
 {
 public:
 	Ramper();
-	~Ramper();
+	~Ramper() {}
 
 	void setStepAmount(int newStepAmount);
 	void setTarget(float currentValue, float newTarget, int numberOfSteps);
