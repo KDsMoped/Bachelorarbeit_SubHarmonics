@@ -40,11 +40,12 @@ private:
 	/*
 	// This reference is provided as a quick way for your editor to
     // access the processor object that created it.
-    PrototypeAudioProcessor& processor;
+    // PrototypeAudioProcessor& processor;
 	*/
 	ToggleButton masterBypassButton;
 	ToggleButton soloSubButton;
 	ToggleButton switchFilterButton;
+	ToggleButton harmonicCompens;
 
 	Slider inputGainSlider;
 	Label inputGainLabel;

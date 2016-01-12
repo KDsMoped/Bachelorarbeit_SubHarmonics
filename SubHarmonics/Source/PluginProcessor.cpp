@@ -63,7 +63,8 @@ private:
 
 const float defaultMasterBypass = 0.f;
 const float defaultSoloSub = 0.f;
-const float defailtSwitchFilter = 0.f;
+const float defaultSwitchFilter = 0.f;
+const float defaultHarmCompens = 0.f;
 
 const float defaultInputGain = 0.5f;
 const float defaultPreSubGain = 0.5f;
@@ -93,7 +94,8 @@ PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadF
 	// Set up our parameters. The base class will delete them for us.
 	addParameter(paramMasterBypass = new FloatParameter(defaultMasterBypass, 2, "Master Bypass"));
 	addParameter(paramSoloSub = new FloatParameter(defaultSoloSub, 2, "Solo Sub"));
-	addParameter(paramSwitchFilter = new FloatParameter(defailtSwitchFilter, 2, "Switch Filter"));
+	addParameter(paramSwitchFilter = new FloatParameter(defaultSwitchFilter, 2, "Switch Filter"));
+	addParameter(paramHarmonicCompens = new FloatParameter(defaultHarmCompens, 2, "Harmonic Compensation"));
 
 	addParameter(paramInputGain = new FloatParameter(defaultInputGain, 0, "Input Gain"));
 	addParameter(paramPreSubGain = new FloatParameter(defaultPreSubGain, 0, "Pre Sub Gain"));

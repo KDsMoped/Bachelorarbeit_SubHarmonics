@@ -66,6 +66,7 @@ public:
 	AudioProcessorParameter *paramMasterBypass;
 	AudioProcessorParameter *paramSoloSub;
 	AudioProcessorParameter *paramSwitchFilter;
+	AudioProcessorParameter *paramHarmonicCompens;
 	AudioProcessorParameter *paramInputGain;
 	AudioProcessorParameter *paramPreSubGain;
 	AudioProcessorParameter *paramBpFreq;
