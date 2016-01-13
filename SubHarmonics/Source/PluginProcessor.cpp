@@ -292,7 +292,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			}
 		}
 	}
-				
+
 
 	for (int i = 0; i < numSamples; i++) {
 		// Check if bypassed
@@ -308,6 +308,8 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 				// Pre Sub BPF
 				biquadPreSubBPF->setFilterCoeffs(sampleRate, paramBpFreq->getValue(), paramBpQ->getValue());
 				biquadPreSubBPF->processFilter(&effectBufferedSample, 0);
+
+				biquadTriggerAPF->setFilterCoeffs(sampleRate, paramBpFreq->getValue(), 0);
 			}
 			else {
 				// Pre Sub LPF
@@ -316,6 +318,9 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 				// Pre Sub HPF
 				biquadPreSubHPF->setFilterCoeffs(getSampleRate(), paramHpfFreq->getValue(), 0.707f);
 				biquadPreSubHPF->processFilter(&effectBufferedSample, 0);
+
+				float midFreq = (paramLpfFreq->getValue() + paramHpfFreq->getValue()) / 2;
+				biquadTriggerAPF->setFilterCoeffs(sampleRate, midFreq, 0);
 			}
 
 			
@@ -338,31 +343,31 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 
 			debugData[i][1] = effectBufferedSample;
 
-			biquadCompAPF->setFilterCoeffs(sampleRate, 40, 0.707f);
-			biquadCompAPF->processFilter(&effectBufferedSample, 0);
-		
+			if (paramHarmonicCompens->getValue() != 0.f) {
+				biquadCompAPF->setFilterCoeffs(sampleRate, 40, 0.707f);
+				biquadCompAPF->processFilter(&effectBufferedSample, 0);
+			}
 			
 
 			// Trigger Circuit
 
 			// Optional first order allpass
-			biquadTriggerAPF->setFilterCoeffs(sampleRate, paramBpFreq->getValue(), 0);
 			biquadTriggerAPF->processFilter(&triggerBufferedSample, 0);
 
-			// 
-			
-			biquadPreTriggerLPF->setFilterCoeffs(sampleRate, 40, 0.707f);
-			biquadPreTriggerLPF->processFilter(&triggerBufferedSample, 0);
+			// Harmonic Compensation
+			if (paramHarmonicCompens->getValue() != 0.f) {
+				biquadPreTriggerLPF->setFilterCoeffs(sampleRate, 40, 0.707f);
+				biquadPreTriggerLPF->processFilter(&triggerBufferedSample, 0);
 
-			
-			// Compressor
-			debugData[i][0] = triggerBufferedSample;
-			float compGain = lvlCompensationCompressor->calcGain(triggerBufferedSample, -48, 10, 200, sampleRate);
-			triggerBufferedSample *= compGain;
-			
-			// Make up gain
-			triggerBufferedSample *= 30;
-			
+				// Compressor
+				debugData[i][0] = triggerBufferedSample;
+				float compGain = lvlCompensationCompressor->calcGain(triggerBufferedSample, -48, 10, 200, sampleRate);
+				triggerBufferedSample *= compGain;
+
+				// Make up gain
+				triggerBufferedSample *= 30;
+			}
+
 			debugData[i][1] = triggerBufferedSample;
 
 			// Schmitt-Trigger
@@ -469,6 +474,7 @@ void PrototypeAudioProcessor::getStateInformation (MemoryBlock& destData)
 	xml.setAttribute("master_bypass", paramMasterBypass->getValue());
 	xml.setAttribute("solo_sub", paramSoloSub->getValue());
 	xml.setAttribute("switch_filter", paramSwitchFilter->getValue());
+	xml.setAttribute("harmonic_compens", paramHarmonicCompens->getValue());
 	xml.setAttribute("input_gain", paramInputGain->getValue());
 	xml.setAttribute("pre_sub_gain", paramPreSubGain->getValue());
 	xml.setAttribute("bp_frequency", paramBpFreq->getValue());
@@ -503,6 +509,7 @@ void PrototypeAudioProcessor::setStateInformation (const void* data, int sizeInB
 			paramMasterBypass->setValue((float)xmlState->getDoubleAttribute("master_bypass", paramMasterBypass->getValue()));
 			paramSoloSub->setValue((float)xmlState->getDoubleAttribute("solo_sub", paramSoloSub->getValue()));
 			paramSwitchFilter->setValue((float)xmlState->getDoubleAttribute("switch_filter", paramSwitchFilter->getValue()));
+			paramHarmonicCompens->setValue((float)xmlState->getDoubleAttribute("harmonic_compens", paramHarmonicCompens->getValue()));
 			paramInputGain->setValue((float)xmlState->getDoubleAttribute("input_gain", paramInputGain->getValue()));
 			paramPreSubGain->setValue((float)xmlState->getDoubleAttribute("pre_sub_gain", paramPreSubGain->getValue()));
 			paramBpFreq->setValue((float)xmlState->getDoubleAttribute("bp_frequency", paramBpFreq->getValue()));
