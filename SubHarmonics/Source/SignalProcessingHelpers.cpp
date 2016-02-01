@@ -20,63 +20,63 @@ BiquadFilter::BiquadFilter(int filterType, int filterOrder) : filterType(filterT
 BiquadFilter::~BiquadFilter() { /*delete buffer;*/ }
 
 
-void BiquadFilter::processFilter(float *leSample, int leChannel) {
-	float x = *leSample;
-	float w1 = buffer[1][leChannel][0];
-	float w2 = buffer[2][leChannel][0];
+void BiquadFilter::processFilter(float *sample, int channel) {
+	float x = *sample;
+	float w1 = buffer[1][channel][0];
+	float w2 = buffer[2][channel][0];
 	
 	float w = x - (coeffA1 * w1) - (coeffA2 * w2);
 	float y = (coeffB0 * w) + (coeffB1 * w1) + (coeffB2 * w2);
 
-	buffer[2][leChannel][0] = w1;
-	buffer[1][leChannel][0] = w;
+	buffer[2][channel][0] = w1;
+	buffer[1][channel][0] = w;
 
 	if (filterOrder >= 4) {
 		x = y;
-		w1 = buffer[1][leChannel][1];
-		w2 = buffer[2][leChannel][1];
+		w1 = buffer[1][channel][1];
+		w2 = buffer[2][channel][1];
 
 		w = x - (coeffA1 * w1) - (coeffA2 * w2);
 		y = (coeffB0 * w) + (coeffB1 * w1) + (coeffB2 * w2);
 	
-		buffer[2][leChannel][1] = w1;
-		buffer[1][leChannel][1] = w;
+		buffer[2][channel][1] = w1;
+		buffer[1][channel][1] = w;
 	}
 	if (filterOrder >= 6) {
 		x = y;
-		w1 = buffer[1][leChannel][2];
-		w2 = buffer[2][leChannel][2];
+		w1 = buffer[1][channel][2];
+		w2 = buffer[2][channel][2];
 
 		w = x - (coeffA1 * w1) - (coeffA2 * w2);
 		y = (coeffB0 * w) + (coeffB1 * w1) + (coeffB2 * w2);
 
-		buffer[2][leChannel][2] = w1;
-		buffer[1][leChannel][2] = w;
+		buffer[2][channel][2] = w1;
+		buffer[1][channel][2] = w;
 	}
 	if (filterOrder >= 8) {
 		x = y;
-		w1 = buffer[1][leChannel][3];
-		w2 = buffer[2][leChannel][3];
+		w1 = buffer[1][channel][3];
+		w2 = buffer[2][channel][3];
 
 		w = x - (coeffA1 * w1) - (coeffA2 * w2);
 		y = (coeffB0 * w) + (coeffB1 * w1) + (coeffB2 * w2);
 
-		buffer[2][leChannel][3] = w1;
-		buffer[1][leChannel][3] = w;
+		buffer[2][channel][3] = w1;
+		buffer[1][channel][3] = w;
 	}
 	if (filterOrder >= 10) {
 		x = y;
-		w1 = buffer[1][leChannel][4];
-		w2 = buffer[2][leChannel][4];
+		w1 = buffer[1][channel][4];
+		w2 = buffer[2][channel][4];
 
 		w = x - (coeffA1 * w1) - (coeffA2 * w2);
 		y = (coeffB0 * w) + (coeffB1 * w1) + (coeffB2 * w2);
 
-		buffer[2][leChannel][4] = w1;
-		buffer[1][leChannel][4] = w;
+		buffer[2][channel][4] = w1;
+		buffer[1][channel][4] = w;
 	}
 
-	*leSample = y;
+	*sample = y;
 }
 
 
@@ -138,7 +138,6 @@ void BiquadFilter::setFilterCoeffs(float sr, float f, float q) {
 			coeffA2 = coeffB0;
 		}
 	}
-	
 }
 
 
@@ -156,7 +155,8 @@ void BiquadFilter::flushBuffer() {
 //==============================================================================
 
 
-float PeakDetector::calcEnvelope(float in, float timeConstant, int samplerate) {
+float PeakDetector::calcEnvelope(float sample, float timeConstant, int sr) {
+	/*
 	float dt = 1.f / samplerate;
 	float rc = timeConstant * 1.e-3; // X ms release time
 	float coeff = rc / (rc + dt);
@@ -165,6 +165,25 @@ float PeakDetector::calcEnvelope(float in, float timeConstant, int samplerate) {
 	float y = vc;
 	float rect = fabs(x); // Rectifier(diodes)
 	vc = (rect > vc ? rect : coeff*vc);
+	*/
+	float x = sample;
+	float rect = fabs(x);
+	float attack = .1f;
+	float release = timeConstant;
+	float dt = 1.f / sr;
+	float tc = log10(0.01f);
+	float at = 1 - exp((-2.2f * dt) / (attack / 1000));
+	float rt = 1 - exp((-2.2f * dt) / (release / 1000));
+	float y = vc ;
+
+	//vc = (rect > vc ? rect : coeff*vc);
+	
+	if (rect > vc) {
+		vc = (1 - at) * vc + at * rect;
+	}
+	else {
+		vc = (1 - rt) * vc;
+	}
 
 	return y;
 }
@@ -177,7 +196,7 @@ void PeakDetector::flushVC() {
 //==============================================================================
 
 
-float Compressor::calcGain(float x, float threshold, float ratio, float release, int samplerate) {
+float Compressor::calcGain(float sample, float threshold, float ratio, float release, int sr) {
 	// Set slope variable
 	float cs = 1.f - (1.f / ratio);
 
@@ -185,7 +204,7 @@ float Compressor::calcGain(float x, float threshold, float ratio, float release,
 	// -soft knee with lagrange?
 
 	// Envelope detector
-	float env = peakDetector->calcEnvelope(x, release, samplerate);
+	float env = peakDetector->calcEnvelope(sample, release, sr);
 	
 	// Convert Envelope to logarithmic value
 	env = 20 * log(env);

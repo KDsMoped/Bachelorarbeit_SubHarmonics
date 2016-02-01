@@ -325,18 +325,19 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 
 			// Peak Detector to generate the Offset "1"
 			float rectifierBufferedSample = peakDetector->calcEnvelope(effectBufferedSample, paramDecay->getValue(), sampleRate);
+			debugData[i][0] = rectifierBufferedSample;
 
 
 			// Summing Unit
 			effectBufferedSample = (effectBufferedSample + rectifierBufferedSample) / 2;
+
+			debugData[i][1] = effectBufferedSample;
 
 			// Square Root Extractor
 			if (effectBufferedSample < 0.f) {
 				effectBufferedSample = 0.f;
 			}
 			effectBufferedSample = sqrtf(effectBufferedSample);
-
-			debugData[i][1] = effectBufferedSample;
 
 			biquadCompAPF->setFilterCoeffs(sampleRate, 40, 0.707f);
 			biquadCompAPF->processFilter(&effectBufferedSample, 0);
@@ -356,14 +357,12 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 
 			
 			// Compressor
-			debugData[i][0] = triggerBufferedSample;
 			float compGain = lvlCompensationCompressor->calcGain(triggerBufferedSample, -48, 10, 200, sampleRate);
 			triggerBufferedSample *= compGain;
 			
 			// Make up gain
 			triggerBufferedSample *= 30;
-			
-			debugData[i][1] = triggerBufferedSample;
+
 
 			// Schmitt-Trigger
 			float posHyst = paramHyst->getValue();
@@ -425,7 +424,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 				}
 
 				
-				//channelData[i] = debugData[i][ch];
+				channelData[i] = debugData[i][ch];
 				
 				// Apply Output Gain
 				channelData[i] *= paramOutputGain->getValue();

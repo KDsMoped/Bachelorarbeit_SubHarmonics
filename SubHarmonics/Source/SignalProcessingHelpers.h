@@ -39,7 +39,7 @@ public:
 	BiquadFilter(int filterType, int filterOrder);
 	~BiquadFilter();
 
-	void processFilter(float *leSample, int leChannel);
+	void processFilter(float *sample, int channel);
 	void setFilterCoeffs(float sr, float f, float q);
 	void flushBuffer();
 
@@ -65,7 +65,7 @@ public:
 	PeakDetector() {}
 	~PeakDetector() {}
 
-	float calcEnvelope(float x, float timeConstant, int samplerate);
+	float calcEnvelope(float sample, float timeConstant, int sr);
 	void flushVC();
 
 private:
@@ -81,7 +81,7 @@ public:
 	Compressor() : peakDetector(new PeakDetector) {}
 	~Compressor() { delete peakDetector; }
 
-	float calcGain(float x, float threshold, float ratio, float release, int samperate);
+	float calcGain(float sample, float threshold, float ratio, float release, int sr);
 	void flushDetector();
 
 private:
