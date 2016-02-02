@@ -37,7 +37,7 @@ enum {
 class BiquadFilter {
 public:
 	BiquadFilter(int filterType, int filterOrder);
-	~BiquadFilter();
+	~BiquadFilter(){}
 
 	void processFilter(float *sample, int channel);
 	void setFilterCoeffs(float sr, float f, float q);
@@ -53,7 +53,7 @@ private:
 	float coeffA1;
 	float coeffA2;
 
-	float buffer[3][2][5];
+	float buffer[2][2][5]; // <- Buffer array for 2 delays, 2 channels and 5 instances of computation
 };
 
 

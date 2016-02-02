@@ -34,6 +34,10 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 	switchFilterButton.addListener(this);
 	switchFilterButton.setButtonText("Switch Filter");
 
+	// Set properties for Switch Filter Button
+	harmonicCompensButton.addListener(this);
+	harmonicCompensButton.setButtonText("Harmonic Compensation");
+
 	// Set properties for the Input Gain Slider
 	inputGainSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
 	inputGainSlider.setRange(0.0, 1.0, 0.01);
@@ -159,6 +163,7 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 	addAndMakeVisible(&masterBypassButton);
 	addAndMakeVisible(&soloSubButton);
 	addAndMakeVisible(&switchFilterButton);
+	addAndMakeVisible(&harmonicCompensButton);
 	addAndMakeVisible(&inputGainSlider);
 	addAndMakeVisible(&inputGainLabel);
 	addAndMakeVisible(&outputGainSlider);
@@ -214,6 +219,7 @@ void PrototypeAudioProcessorEditor::resized()
 	masterBypassButton.setBounds(50, 250, 100, 40);
 	soloSubButton.setBounds(650, 250, 100, 40);
 	switchFilterButton.setBounds(250, 250, 100, 40);
+	harmonicCompensButton.setBounds(450, 250, 100, 40);
 	
 	// Setting slider sizes and positions
 	inputGainSlider.setBounds(50, 110, defaultKnobWidth, defaultKnobHeight);
@@ -250,6 +256,7 @@ void PrototypeAudioProcessorEditor::timerCallback() {
 	masterBypassButton.setToggleState((bool)getProcessor().paramMasterBypass->getValue(), dontSendNotification);
 	soloSubButton.setToggleState((bool)getProcessor().paramSoloSub->getValue(), dontSendNotification);
 	switchFilterButton.setToggleState((bool)getProcessor().paramSwitchFilter->getValue(), dontSendNotification);
+	harmonicCompensButton.setToggleState((bool)getProcessor().paramHarmonicCompens->getValue(), dontSendNotification);
 
 	inputGainSlider.setValue(getProcessor().paramInputGain->getValue(), dontSendNotification);
 	preSubGainSlider.setValue(getProcessor().paramPreSubGain->getValue(), dontSendNotification);
@@ -268,9 +275,6 @@ void PrototypeAudioProcessorEditor::timerCallback() {
 //==============================================================================
 // This is our Slider::Listener callback, when the user drags a slider.
 void PrototypeAudioProcessorEditor::sliderValueChanged(Slider *slider) {
-	//getProcessor().inputGain = inputGainSlider.getValue();
-	//getProcessor().outputGain = outputGainSlider.getValue();
-
 	if (AudioProcessorParameter* param = getParameterFromSlider(slider))
 	{
 		// It's vital to use setValueNotifyingHost to change any parameters that are automatable
@@ -327,4 +331,5 @@ AudioProcessorParameter* PrototypeAudioProcessorEditor::getParameterFromButton(c
 	if (button == &masterBypassButton) { return getProcessor().paramMasterBypass; }
 	if (button == &soloSubButton) { return getProcessor().paramSoloSub; }
 	if (button == &switchFilterButton) { return getProcessor().paramSwitchFilter; }
+	if (button == &harmonicCompensButton) { return getProcessor().paramHarmonicCompens; }
 }

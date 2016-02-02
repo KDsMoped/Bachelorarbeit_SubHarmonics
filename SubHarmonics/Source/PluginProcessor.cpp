@@ -80,17 +80,23 @@ const float defaultPostSubGain = 0.5f;
 const float defaultOutputGain = 0.5f;
 
 //==============================================================================
-PrototypeAudioProcessor::PrototypeAudioProcessor() : biquadPreSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder8)),
-													 biquadPreSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder8)),
-													 biquadPostSubLPF(new BiquadFilter(filterTypeLowPass, filterOrder6)),
-													 biquadPostSubHPF(new BiquadFilter(filterTypeHighPass, filterOrder2)),
-													 biquadPreSubBPF(new BiquadFilter(filterTypeBandPass, filterOrder8)),
-													 biquadTriggerAPF(new BiquadFilter(filterTypeAllPass, filterOrder1)),
-													 biquadPreTriggerLPF(new BiquadFilter(filterTypeLowPass, filterOrder4)),
-													 biquadCompAPF(new BiquadFilter(filterTypeAllPass, filterOrder2)),
-													 peakDetector(new PeakDetector()),
-													 lvlCompensationCompressor(new Compressor())
-													 {
+PrototypeAudioProcessor::PrototypeAudioProcessor() {
+	// Create biquad filter objects
+	biquadPreSubBPF = new BiquadFilter(filterTypeBandPass, filterOrder8);
+	biquadPreSubHPF = new BiquadFilter(filterTypeHighPass, filterOrder8);
+	biquadPreSubLPF = new BiquadFilter(filterTypeLowPass, filterOrder8);
+	biquadPostSubLPF = new BiquadFilter(filterTypeLowPass, filterOrder6);
+	biquadPostSubHPF = new BiquadFilter(filterTypeHighPass, filterOrder2);
+	biquadTriggerAPF = new BiquadFilter(filterTypeAllPass, filterOrder1);
+	biquadPreTriggerLPF = new BiquadFilter(filterTypeLowPass, filterOrder4);
+	biquadCompAPF = new BiquadFilter(filterTypeAllPass, filterOrder2);
+	
+	// Create peak detector object
+	peakDetector = new PeakDetector();
+
+	// Create compressor objekt
+	lvlCompensationCompressor = new Compressor();
+
 	// Set up our parameters. The base class will delete them for us.
 	addParameter(paramMasterBypass = new FloatParameter(defaultMasterBypass, 2, "Master Bypass"));
 	addParameter(paramSoloSub = new FloatParameter(defaultSoloSub, 2, "Solo Sub"));
@@ -292,89 +298,89 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			}
 		}
 	}
-				
+
 
 	for (int i = 0; i < numSamples; i++) {
 		// Check if bypassed
 		if (paramMasterBypass->getValue() == 0) {
 			// Store current sample value in buffers for the various signal paths
-			float effectBufferedSample = monoData[i];
+			float effectSample = monoData[i];
 
 			// Applay Sub Pre Gain
-			effectBufferedSample *= (paramPreSubGain->getValue() * 4);
+			effectSample *= (paramPreSubGain->getValue() * 4);
 
 			// Signal Conditioning
 			if (paramSwitchFilter->getValue() == 0) {
 				// Pre Sub BPF
 				biquadPreSubBPF->setFilterCoeffs(sampleRate, paramBpFreq->getValue(), paramBpQ->getValue());
-				biquadPreSubBPF->processFilter(&effectBufferedSample, 0);
+				biquadPreSubBPF->processFilter(&effectSample, 0);
+
+				biquadTriggerAPF->setFilterCoeffs(sampleRate, paramBpFreq->getValue(), 0);
 			}
 			else {
 				// Pre Sub LPF
 				biquadPreSubLPF->setFilterCoeffs(getSampleRate(), paramLpfFreq->getValue(), 0.707f);
-				biquadPreSubLPF->processFilter(&effectBufferedSample, 0);
+				biquadPreSubLPF->processFilter(&effectSample, 0);
 				// Pre Sub HPF
 				biquadPreSubHPF->setFilterCoeffs(getSampleRate(), paramHpfFreq->getValue(), 0.707f);
-				biquadPreSubHPF->processFilter(&effectBufferedSample, 0);
+				biquadPreSubHPF->processFilter(&effectSample, 0);
+
+				float midFreq = (paramLpfFreq->getValue() + paramHpfFreq->getValue()) / 2;
+				biquadTriggerAPF->setFilterCoeffs(sampleRate, midFreq, 0);
 			}
 
 			
 			// Forking effect signal paths
-			float triggerBufferedSample = effectBufferedSample;
+			float triggerSample = effectSample;
 
 
 			// Peak Detector to generate the Offset "1"
-			float rectifierBufferedSample = peakDetector->calcEnvelope(effectBufferedSample, paramDecay->getValue(), sampleRate);
-			debugData[i][0] = rectifierBufferedSample;
-
+			float envelopeSample = peakDetector->calcEnvelope(effectSample, paramDecay->getValue(), sampleRate);
 
 			// Summing Unit
-			effectBufferedSample = (effectBufferedSample + rectifierBufferedSample) / 2;
-
-			debugData[i][1] = effectBufferedSample;
+			effectSample = (effectSample + envelopeSample) / 2;
+			debugData[i][1] = effectSample;
 
 			// Square Root Extractor
-			if (effectBufferedSample < 0.f) {
-				effectBufferedSample = 0.f;
-			}
-			effectBufferedSample = sqrtf(effectBufferedSample);
+			effectSample = fmax(effectSample, 0.f);
+			effectSample = sqrtf(effectSample);
+			debugData[i][0] = effectSample;
 
-			biquadCompAPF->setFilterCoeffs(sampleRate, 40, 0.707f);
-			biquadCompAPF->processFilter(&effectBufferedSample, 0);
-		
+			if (paramHarmonicCompens->getValue() != 0.f) {
+				biquadCompAPF->setFilterCoeffs(sampleRate, 40, 0.707f);
+				biquadCompAPF->processFilter(&effectSample, 0);
+			}
 			
 
 			// Trigger Circuit
 
 			// Optional first order allpass
-			biquadTriggerAPF->setFilterCoeffs(sampleRate, paramBpFreq->getValue(), 0);
-			biquadTriggerAPF->processFilter(&triggerBufferedSample, 0);
+			biquadTriggerAPF->processFilter(&triggerSample, 0);
 
-			// 
-			
-			biquadPreTriggerLPF->setFilterCoeffs(sampleRate, 40, 0.707f);
-			biquadPreTriggerLPF->processFilter(&triggerBufferedSample, 0);
+			// Harmonic Compensation
+			if (paramHarmonicCompens->getValue() != 0.f) {
+				biquadPreTriggerLPF->setFilterCoeffs(sampleRate, 40, 0.707f);
+				biquadPreTriggerLPF->processFilter(&triggerSample, 0);
 
-			
-			// Compressor
-			float compGain = lvlCompensationCompressor->calcGain(triggerBufferedSample, -48, 10, 200, sampleRate);
-			triggerBufferedSample *= compGain;
-			
-			// Make up gain
-			triggerBufferedSample *= 30;
+				// Compressor
+				float compGain = lvlCompensationCompressor->calcGain(triggerSample, -48, 10, 200, sampleRate);
+				triggerSample *= compGain;
 
+				// Make up gain
+				triggerSample *= 30;
+			}
 
 			// Schmitt-Trigger
 			float posHyst = paramHyst->getValue();
 			float negHyst = posHyst * -1;
 
-			if (triggerBufferedSample > posHyst) {
+			if (triggerSample > posHyst) {
 				if (schmittTriggerStatus == 0) {
 					schmittTriggerStatus = 1;
 					triggerChangeCount++;
 				}
 			}
-			if (triggerBufferedSample < negHyst) {
+			if (triggerSample < negHyst) {
 				if (schmittTriggerStatus == 1) {
 					schmittTriggerStatus = 0;
 					triggerChangeCount++;
@@ -392,7 +398,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			ramper->ramp(signumGain);
 			if (signumGain > 1.f) { signumGain = 1.f; }
 			if (signumGain < -1.f) { signumGain = -1.f; }
-			effectBufferedSample *= signumGain;
+			effectSample *= signumGain;
 		
 
 			// Post Filter
@@ -400,10 +406,10 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			biquadPostSubLPF->setFilterCoeffs(sampleRate, paramColour->getValue(), 0.707f);
 			biquadPostSubHPF->setFilterCoeffs(sampleRate, 19.f, 0.707f);
 
-			biquadPostSubLPF->processFilter(&effectBufferedSample, 0);
+			biquadPostSubLPF->processFilter(&effectSample, 0);
 			//biquadPostSubHPF->processFilter(&effectBufferedSample, 0);
 			
-			monoData[i] = effectBufferedSample;
+			monoData[i] = effectSample;
 		}
 	}
 
@@ -468,6 +474,7 @@ void PrototypeAudioProcessor::getStateInformation (MemoryBlock& destData)
 	xml.setAttribute("master_bypass", paramMasterBypass->getValue());
 	xml.setAttribute("solo_sub", paramSoloSub->getValue());
 	xml.setAttribute("switch_filter", paramSwitchFilter->getValue());
+	xml.setAttribute("harmonic_compens", paramHarmonicCompens->getValue());
 	xml.setAttribute("input_gain", paramInputGain->getValue());
 	xml.setAttribute("pre_sub_gain", paramPreSubGain->getValue());
 	xml.setAttribute("bp_frequency", paramBpFreq->getValue());
@@ -502,6 +509,7 @@ void PrototypeAudioProcessor::setStateInformation (const void* data, int sizeInB
 			paramMasterBypass->setValue((float)xmlState->getDoubleAttribute("master_bypass", paramMasterBypass->getValue()));
 			paramSoloSub->setValue((float)xmlState->getDoubleAttribute("solo_sub", paramSoloSub->getValue()));
 			paramSwitchFilter->setValue((float)xmlState->getDoubleAttribute("switch_filter", paramSwitchFilter->getValue()));
+			paramHarmonicCompens->setValue((float)xmlState->getDoubleAttribute("harmonic_compens", paramHarmonicCompens->getValue()));
 			paramInputGain->setValue((float)xmlState->getDoubleAttribute("input_gain", paramInputGain->getValue()));
 			paramPreSubGain->setValue((float)xmlState->getDoubleAttribute("pre_sub_gain", paramPreSubGain->getValue()));
 			paramBpFreq->setValue((float)xmlState->getDoubleAttribute("bp_frequency", paramBpFreq->getValue()));

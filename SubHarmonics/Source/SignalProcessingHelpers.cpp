@@ -17,63 +17,64 @@
 BiquadFilter::BiquadFilter(int filterType, int filterOrder) : filterType(filterType), 
 															  filterOrder(filterOrder) 
 															  {}
-BiquadFilter::~BiquadFilter() { /*delete buffer;*/ }
 
 
 void BiquadFilter::processFilter(float *sample, int channel) {
 	float x = *sample;
-	float w1 = buffer[1][channel][0];
-	float w2 = buffer[2][channel][0];
+	float w1 = buffer[0][channel][0];
+	float w2 = buffer[1][channel][0];
 	
+	// Compute difference equation
 	float w = x - (coeffA1 * w1) - (coeffA2 * w2);
 	float y = (coeffB0 * w) + (coeffB1 * w1) + (coeffB2 * w2);
 
-	buffer[2][channel][0] = w1;
-	buffer[1][channel][0] = w;
+	// Shift buffer values
+	buffer[1][channel][0] = w1;
+	buffer[0][channel][0] = w;
 
 	if (filterOrder >= 4) {
 		x = y;
-		w1 = buffer[1][channel][1];
-		w2 = buffer[2][channel][1];
+		w1 = buffer[0][channel][1];
+		w2 = buffer[1][channel][1];
 
 		w = x - (coeffA1 * w1) - (coeffA2 * w2);
 		y = (coeffB0 * w) + (coeffB1 * w1) + (coeffB2 * w2);
 	
-		buffer[2][channel][1] = w1;
-		buffer[1][channel][1] = w;
+		buffer[1][channel][1] = w1;
+		buffer[0][channel][1] = w;
 	}
 	if (filterOrder >= 6) {
 		x = y;
-		w1 = buffer[1][channel][2];
-		w2 = buffer[2][channel][2];
+		w1 = buffer[0][channel][2];
+		w2 = buffer[1][channel][2];
 
 		w = x - (coeffA1 * w1) - (coeffA2 * w2);
 		y = (coeffB0 * w) + (coeffB1 * w1) + (coeffB2 * w2);
 
-		buffer[2][channel][2] = w1;
-		buffer[1][channel][2] = w;
+		buffer[1][channel][2] = w1;
+		buffer[0][channel][2] = w;
 	}
 	if (filterOrder >= 8) {
 		x = y;
-		w1 = buffer[1][channel][3];
-		w2 = buffer[2][channel][3];
+		w1 = buffer[0][channel][3];
+		w2 = buffer[1][channel][3];
 
 		w = x - (coeffA1 * w1) - (coeffA2 * w2);
 		y = (coeffB0 * w) + (coeffB1 * w1) + (coeffB2 * w2);
 
-		buffer[2][channel][3] = w1;
-		buffer[1][channel][3] = w;
+		buffer[1][channel][3] = w1;
+		buffer[0][channel][3] = w;
 	}
 	if (filterOrder >= 10) {
 		x = y;
-		w1 = buffer[1][channel][4];
-		w2 = buffer[2][channel][4];
+		w1 = buffer[0][channel][4];
+		w2 = buffer[1][channel][4];
 
 		w = x - (coeffA1 * w1) - (coeffA2 * w2);
 		y = (coeffB0 * w) + (coeffB1 * w1) + (coeffB2 * w2);
 
-		buffer[2][channel][4] = w1;
-		buffer[1][channel][4] = w;
+		buffer[1][channel][4] = w1;
+		buffer[0][channel][4] = w;
 	}
 
 	*sample = y;
@@ -142,7 +143,7 @@ void BiquadFilter::setFilterCoeffs(float sr, float f, float q) {
 
 
 void BiquadFilter::flushBuffer() {
-	for (int i = 0; i < 3; i++) {
+	for (int i = 0; i < 2; i++) {
 		for (int j = 0; j < 2; j++) {
 			for (int k = 0; k < 5; k++) {
 				buffer[i][j][k] = 0.f;
@@ -156,28 +157,21 @@ void BiquadFilter::flushBuffer() {
 
 
 float PeakDetector::calcEnvelope(float sample, float timeConstant, int sr) {
-	/*
-	float dt = 1.f / samplerate;
-	float rc = timeConstant * 1.e-3; // X ms release time
-	float coeff = rc / (rc + dt);
-	
-	float x = in;
-	float y = vc;
-	float rect = fabs(x); // Rectifier(diodes)
-	vc = (rect > vc ? rect : coeff*vc);
-	*/
 	float x = sample;
-	float rect = fabs(x);
 	float attack = .1f;
 	float release = timeConstant;
 	float dt = 1.f / sr;
 	float tc = log10(0.01f);
+
+	// Calculate rect, AT and RT values
+	float rect = fabs(x);
 	float at = 1 - exp((-2.2f * dt) / (attack / 1000));
 	float rt = 1 - exp((-2.2f * dt) / (release / 1000));
-	float y = vc ;
-
-	//vc = (rect > vc ? rect : coeff*vc);
 	
+	// Writing the output value before calculation starts imitates the one sample delay
+	float y = vc;
+	
+	// Calculate the envelope value for attack and release case
 	if (rect > vc) {
 		vc = (1 - at) * vc + at * rect;
 	}
@@ -233,12 +227,12 @@ Ramper::Ramper() : targetValue(0.0f),
 				   {};
 
 
-/** Sets the step amount that the ramper will use. You can overwrite this value by supplying a step number in setTarget. */
+// Sets the step amount that the ramper will use. You can overwrite this value by supplying a step number in setTarget
 void Ramper::setStepAmount(int newStepAmount) { 
 	stepAmount = newStepAmount; 
 }
 
-/** sets the new target and recalculates the step size using either the supplied step number or the step amount previously set by setStepAmount(). */
+// Sets the new target and recalculates the step size using either the supplied step number or the step amount previously set by setStepAmount()
 void Ramper::setTarget(float currentValue, float newTarget, int numberOfSteps = -1) {
 	if (numberOfSteps != -1) stepDelta = (newTarget - currentValue) / numberOfSteps;
 	else if (stepAmount != -1) stepDelta = (newTarget - currentValue) / stepAmount;
@@ -246,13 +240,13 @@ void Ramper::setTarget(float currentValue, float newTarget, int numberOfSteps = 
 	targetValue = newTarget;
 }
 
-/** Sets the ramper value and the target to the new value and stops ramping. */
+// Sets the ramper value and the target to the new value and stops ramping
 void Ramper::setValue(float newValue) {
 	targetValue = newValue;
 	stepDelta = 0.0f;
 }
 
-/** ramps the supplied value and returns true if the targetValue is reached. */
+// Ramps the supplied value and returns true if the targetValue is reached
 bool Ramper::ramp(float &valueToChange) {
 	valueToChange += stepDelta;
 	return abs(targetValue - valueToChange) > 0.001;
