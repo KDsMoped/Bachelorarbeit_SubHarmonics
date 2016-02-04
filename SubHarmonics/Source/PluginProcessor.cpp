@@ -402,7 +402,9 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			if (signumGain < -1.f) { signumGain = -1.f; }
 			effectSample *= sign;// signumGain;
 		
-
+			// Multiply with envelope
+			effectSample *= envelopeSample;
+			
 			// Post Processing
 			// Static Post
 			biquadStaticPostSubLPF->setFilterCoeffs(sampleRate, 40.f, 0.707f);

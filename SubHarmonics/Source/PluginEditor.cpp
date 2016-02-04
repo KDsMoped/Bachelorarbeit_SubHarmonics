@@ -60,7 +60,7 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 
 	// Set properties for the Pre Sub Gain Slider
 	preSubGainSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
-	preSubGainSlider.setRange(24.f, 48.f, 0.1f);
+	preSubGainSlider.setRange(12.f, 36.f, 0.1f);
 	preSubGainSlider.setSliderSnapsToMousePosition(false);
 	preSubGainSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
 	preSubGainSlider.setTextValueSuffix(" dB");
@@ -112,7 +112,7 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 
 	// Set properties for the Decay Slider
 	decaySlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
-	decaySlider.setRange(.5f, 20.f, .5f);
+	decaySlider.setRange(1.f, 30.f, .5f);
 	decaySlider.setSliderSnapsToMousePosition(false);
 	decaySlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
 	decaySlider.setTextValueSuffix(" ms");
