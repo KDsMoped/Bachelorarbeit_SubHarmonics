@@ -117,5 +117,11 @@ private:
 
 //==============================================================================
 
+float convertDBtoFloat(float dbValue) {
+	return pow(10, dbValue / 20);
+}
+
+//==============================================================================
+
 
 #endif  // SIGNALPROCESSINGHELPERS_H_INCLUDED

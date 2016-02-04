@@ -88,6 +88,7 @@ private:
 	BiquadFilter *biquadPreTriggerLPF;
 	BiquadFilter *biquadCompAPF;
 	BiquadFilter *biquadTriggerAPF;
+	BiquadFilter *biquadStaticPostSubLPF;
 	BiquadFilter *biquadPostSubLPF;
 	BiquadFilter *biquadPostSubHPF;
 

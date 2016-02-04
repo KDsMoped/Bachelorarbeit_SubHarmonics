@@ -66,18 +66,18 @@ const float defaultSoloSub = 0.f;
 const float defaultSwitchFilter = 0.f;
 const float defaultHarmCompens = 0.f;
 
-const float defaultInputGain = 0.5f;
-const float defaultPreSubGain = 0.5f;
+const float defaultInputGain = 0.f;
+const float defaultPreSubGain = 24.f;
 const float defaultBpFreq = 1000.f;
 const float defaultBpQ = 0.707f;
-const float defaultLpfFreq = 900.f;
-const float defaultHpfFreq = 1000.f;
+const float defaultLpfFreq = 1000.f;
+const float defaultHpfFreq = 900.f;
 const float defaultDecay = 5.f;
-const float defaultHyst = 0.025f;
+const float defaultHyst = -60.f;
 const float defaultColour = 550.f;
-const float defaultDirectGain = 0.5f;
-const float defaultPostSubGain = 0.5f;
-const float defaultOutputGain = 0.5f;
+const float defaultDirectGain = 0.f;
+const float defaultPostSubGain = 0.f;
+const float defaultOutputGain = 0.f;
 
 //==============================================================================
 PrototypeAudioProcessor::PrototypeAudioProcessor() {
@@ -86,6 +86,7 @@ PrototypeAudioProcessor::PrototypeAudioProcessor() {
 	biquadPreSubHPF = new BiquadFilter(filterTypeHighPass, filterOrder8);
 	biquadPreSubLPF = new BiquadFilter(filterTypeLowPass, filterOrder8);
 	biquadPostSubLPF = new BiquadFilter(filterTypeLowPass, filterOrder6);
+	biquadStaticPostSubLPF = new BiquadFilter(filterTypeLowPass, filterOrder1);
 	biquadPostSubHPF = new BiquadFilter(filterTypeHighPass, filterOrder2);
 	biquadTriggerAPF = new BiquadFilter(filterTypeAllPass, filterOrder1);
 	biquadPreTriggerLPF = new BiquadFilter(filterTypeLowPass, filterOrder4);
@@ -215,6 +216,7 @@ void PrototypeAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
 	// Clearing buffers
 	biquadPostSubHPF->flushBuffer();
 	biquadPostSubLPF->flushBuffer();
+	biquadStaticPostSubLPF->flushBuffer();
 	biquadPreSubHPF->flushBuffer();
 	biquadPreSubLPF->flushBuffer();
 	biquadPreSubBPF->flushBuffer();
@@ -292,7 +294,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			// Check if bypassed
 			if (paramMasterBypass->getValue() == 0) {
 				// Apply Input Gain
-				channelData[i] *= (paramInputGain->getValue() * 2);
+				channelData[i] *= convertDBtoFloat(paramInputGain->getValue());
 				// Mono Sum
 				monoData[i] += (channelData[i] / 2);
 			}
@@ -307,7 +309,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			float effectSample = monoData[i];
 
 			// Applay Sub Pre Gain
-			effectSample *= (paramPreSubGain->getValue() * 4);
+			effectSample *= convertDBtoFloat(paramPreSubGain->getValue());
 
 			// Signal Conditioning
 			if (paramSwitchFilter->getValue() == 0) {
@@ -338,7 +340,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			float envelopeSample = peakDetector->calcEnvelope(effectSample, paramDecay->getValue(), sampleRate);
 
 			// Summing Unit
-			effectSample = (effectSample + envelopeSample) / 2;
+			effectSample = (effectSample + envelopeSample);// / 2;
 			debugData[i][1] = effectSample;
 
 			// Square Root Extractor
@@ -371,7 +373,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			}
 
 			// Schmitt-Trigger
-			float posHyst = paramHyst->getValue();
+			float posHyst = convertDBtoFloat(paramHyst->getValue());
 			float negHyst = posHyst * -1;
 
 			if (triggerSample > posHyst) {
@@ -390,7 +392,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			// Counter
 			if (triggerChangeCount == 2) {
 				sign *= -1;
-				ramper->setTarget(signumGain, sign, 10);
+				ramper->setTarget(signumGain, sign, 8);
 				triggerChangeCount = 0;
 			}
 			
@@ -398,16 +400,22 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			ramper->ramp(signumGain);
 			if (signumGain > 1.f) { signumGain = 1.f; }
 			if (signumGain < -1.f) { signumGain = -1.f; }
-			effectSample *= signumGain;
+			effectSample *= sign;// signumGain;
 		
 
-			// Post Filter
-			// Calculate static filter coefficients
-			biquadPostSubLPF->setFilterCoeffs(sampleRate, paramColour->getValue(), 0.707f);
-			biquadPostSubHPF->setFilterCoeffs(sampleRate, 19.f, 0.707f);
+			// Post Processing
+			// Static Post
+			biquadStaticPostSubLPF->setFilterCoeffs(sampleRate, 40.f, 0.707f);
+			biquadStaticPostSubLPF->processFilter(&effectSample, 0);
 
+			// Post Sub LPF
+			biquadPostSubLPF->setFilterCoeffs(sampleRate, paramColour->getValue(), 0.707f);
 			biquadPostSubLPF->processFilter(&effectSample, 0);
-			//biquadPostSubHPF->processFilter(&effectBufferedSample, 0);
+
+			// Post Sub HPF
+			biquadPostSubHPF->setFilterCoeffs(sampleRate, 19.f, 0.707f);
+			//biquadPostSubHPF->processFilter(&effectSample, 0);
+			
 			
 			monoData[i] = effectSample;
 		}
@@ -422,18 +430,18 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			if (paramMasterBypass->getValue() == 0) {
 				
 				if (paramSoloSub->getValue() == 1) {
-					channelData[i] = monoData[i] * (2 * paramPostSubGain->getValue());
+					channelData[i] = monoData[i] * convertDBtoFloat(paramPostSubGain->getValue());
 				}
 				else {
 					// Mixing Amplifier 
-					channelData[i] = ((channelData[i] * (2 * paramDirectGain->getValue())) + (monoData[i] * (2 * paramPostSubGain->getValue()))) / (sqrtf(2.f));
+					channelData[i] = ((channelData[i] * convertDBtoFloat(paramDirectGain->getValue())) + (monoData[i] * convertDBtoFloat(paramPostSubGain->getValue()))) / (sqrtf(2.f));
 				}
 
 				
-				channelData[i] = debugData[i][ch];
+				//channelData[i] = debugData[i][ch];
 				
 				// Apply Output Gain
-				channelData[i] *= paramOutputGain->getValue();
+				channelData[i] *= convertDBtoFloat(paramOutputGain->getValue());
 			}
 			else {
 				/*

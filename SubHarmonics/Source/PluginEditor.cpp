@@ -40,30 +40,30 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 
 	// Set properties for the Input Gain Slider
 	inputGainSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
-	inputGainSlider.setRange(0.0, 1.0, 0.01);
+	inputGainSlider.setRange(-12.f, 12.f, 0.1f);
 	inputGainSlider.setSliderSnapsToMousePosition(false);
 	inputGainSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
-	inputGainSlider.setTextValueSuffix(" Volume");
+	inputGainSlider.setTextValueSuffix(" dB");
 	inputGainSlider.addListener(this);
 	// Set properties for the Input Gain Label
 	inputGainLabel.setText("Input Volume", NotificationType::dontSendNotification);
 
 	// Set properties for the Output Gain Slider
 	outputGainSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
-	outputGainSlider.setRange(0.0, 1.0, 0.01);
+	outputGainSlider.setRange(-12.f, 12.f, 0.1f);
 	outputGainSlider.setSliderSnapsToMousePosition(false);
 	outputGainSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
-	outputGainSlider.setTextValueSuffix(" Volume");
+	outputGainSlider.setTextValueSuffix(" dB");
 	outputGainSlider.addListener(this);
 	// Set properties for the Output Gain Label
 	outputGainLabel.setText("Output Volume", NotificationType::dontSendNotification);
 
 	// Set properties for the Pre Sub Gain Slider
 	preSubGainSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
-	preSubGainSlider.setRange(0.0, 1.0, 0.01);
+	preSubGainSlider.setRange(24.f, 48.f, 0.1f);
 	preSubGainSlider.setSliderSnapsToMousePosition(false);
 	preSubGainSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
-	preSubGainSlider.setTextValueSuffix(" Volume");
+	preSubGainSlider.setTextValueSuffix(" dB");
 	preSubGainSlider.addListener(this);
 	// Set properties for the Pre Sub Gain Label
 	preSubGainLabel.setText("Pre Sub Gain", NotificationType::dontSendNotification);
@@ -112,7 +112,7 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 
 	// Set properties for the Decay Slider
 	decaySlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
-	decaySlider.setRange(.5f, 10.f, .5f);
+	decaySlider.setRange(.5f, 20.f, .5f);
 	decaySlider.setSliderSnapsToMousePosition(false);
 	decaySlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
 	decaySlider.setTextValueSuffix(" ms");
@@ -122,9 +122,10 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 
 	// Set properties for the Hysteresis Slider
 	hystSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
-	hystSlider.setRange(0, .1f, .0001f);
+	hystSlider.setRange(-60.f, -20.f, .1f);
 	hystSlider.setSliderSnapsToMousePosition(false);
 	hystSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
+	hystSlider.setTextValueSuffix(" dBFS");
 	hystSlider.addListener(this);
 	// Set properties for the Hysteresis Label
 	hystLabel.setText("Hysteresis", NotificationType::dontSendNotification);
@@ -142,20 +143,20 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 
 	// Set properties for the Direct Gain Slider
 	directGainSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
-	directGainSlider.setRange(0.0, 1.0, 0.01);
+	directGainSlider.setRange(-12.f, 12.f, 0.1f);
 	directGainSlider.setSliderSnapsToMousePosition(false);
 	directGainSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
-	directGainSlider.setTextValueSuffix(" Volume");
+	directGainSlider.setTextValueSuffix(" dB");
 	directGainSlider.addListener(this);
 	// Set properties for the Direct Gain Label
 	directGainLabel.setText("Direct Gain", NotificationType::dontSendNotification);
 
 	// Set properties for the Post Sub Gain Slider
 	postSubGainSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
-	postSubGainSlider.setRange(0.0, 1.0, 0.01);
+	postSubGainSlider.setRange(-12.f, 12.f, 0.1f);
 	postSubGainSlider.setSliderSnapsToMousePosition(false);
 	postSubGainSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
-	postSubGainSlider.setTextValueSuffix(" Volume");
+	postSubGainSlider.setTextValueSuffix(" dB");
 	postSubGainSlider.addListener(this);
 	// Set properties for the Post Sub Gain Label
 	postSubGainLabel.setText("Post Sub Gain", NotificationType::dontSendNotification);
