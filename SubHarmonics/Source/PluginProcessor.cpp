@@ -65,14 +65,15 @@ const float defaultMasterBypass = 0.f;
 const float defaultSoloSub = 0.f;
 const float defaultSwitchFilter = 0.f;
 const float defaultHarmCompens = 0.f;
+const float defaultMuteSub = 0.f;
 
 const float defaultInputGain = 0.f;
-const float defaultPreSubGain = 24.f;
+const float defaultPreSubGain = 18.f;
 const float defaultBpFreq = 1000.f;
 const float defaultBpQ = 0.707f;
 const float defaultLpfFreq = 1000.f;
-const float defaultHpfFreq = 900.f;
-const float defaultDecay = 5.f;
+const float defaultHpfFreq = 20.f;
+const float defaultDecay = 30.f;
 const float defaultHyst = -60.f;
 const float defaultColour = 550.f;
 const float defaultDirectGain = 0.f;
@@ -103,6 +104,7 @@ PrototypeAudioProcessor::PrototypeAudioProcessor() {
 	addParameter(paramSoloSub = new FloatParameter(defaultSoloSub, 2, "Solo Sub"));
 	addParameter(paramSwitchFilter = new FloatParameter(defaultSwitchFilter, 2, "Switch Filter"));
 	addParameter(paramHarmonicCompens = new FloatParameter(defaultHarmCompens, 2, "Harmonic Compensation"));
+	addParameter(paramMuteSub = new FloatParameter(defaultMuteSub, 2, "Mute Sub"));
 
 	addParameter(paramInputGain = new FloatParameter(defaultInputGain, 0, "Input Gain"));
 	addParameter(paramPreSubGain = new FloatParameter(defaultPreSubGain, 0, "Pre Sub Gain"));
@@ -431,15 +433,19 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			// Check if bypassed
 			if (paramMasterBypass->getValue() == 0) {
 				
+				float directOut = channelData[i];
+				float subOut = monoData[i];
+
 				if (paramSoloSub->getValue() == 1) {
-					channelData[i] = monoData[i] * convertDBtoFloat(paramPostSubGain->getValue());
+					directOut = 0.f;
 				}
-				else {
-					// Mixing Amplifier 
-					channelData[i] = ((channelData[i] * convertDBtoFloat(paramDirectGain->getValue())) + (monoData[i] * convertDBtoFloat(paramPostSubGain->getValue()))) / (sqrtf(2.f));
+				if (paramMuteSub->getValue() == 1) {
+					subOut = 0.f;
 				}
 
-				
+				// Mixing Amplifier 
+				channelData[i] = ((directOut * convertDBtoFloat(paramDirectGain->getValue())) + (subOut * convertDBtoFloat(paramPostSubGain->getValue())));// / (sqrtf(2.f));
+
 				//channelData[i] = debugData[i][ch];
 				
 				// Apply Output Gain

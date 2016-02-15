@@ -38,6 +38,10 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 	harmonicCompensButton.addListener(this);
 	harmonicCompensButton.setButtonText("Harmonic Compensation");
 
+	// Set properties for Switch Filter Button
+	muteSubButton.addListener(this);
+	muteSubButton.setButtonText("Mute Sub");
+
 	// Set properties for the Input Gain Slider
 	inputGainSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
 	inputGainSlider.setRange(-12.f, 12.f, 0.1f);
@@ -60,7 +64,7 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 
 	// Set properties for the Pre Sub Gain Slider
 	preSubGainSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
-	preSubGainSlider.setRange(12.f, 36.f, 0.1f);
+	preSubGainSlider.setRange(0.f, 36.f, 0.1f);
 	preSubGainSlider.setSliderSnapsToMousePosition(false);
 	preSubGainSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
 	preSubGainSlider.setTextValueSuffix(" dB");
@@ -112,7 +116,7 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 
 	// Set properties for the Decay Slider
 	decaySlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
-	decaySlider.setRange(1.f, 30.f, .5f);
+	decaySlider.setRange(1.f, 200.f, 1.f);
 	decaySlider.setSliderSnapsToMousePosition(false);
 	decaySlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
 	decaySlider.setTextValueSuffix(" ms");
@@ -165,6 +169,7 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 	addAndMakeVisible(&soloSubButton);
 	addAndMakeVisible(&switchFilterButton);
 	addAndMakeVisible(&harmonicCompensButton);
+	addAndMakeVisible(&muteSubButton);
 	addAndMakeVisible(&inputGainSlider);
 	addAndMakeVisible(&inputGainLabel);
 	addAndMakeVisible(&outputGainSlider);
@@ -217,10 +222,11 @@ void PrototypeAudioProcessorEditor::resized()
 	int defaultKnobWidth = 50;	// knob width in pixels
 
 	// Setting button sizes and positions
-	masterBypassButton.setBounds(50, 250, 100, 40);
-	soloSubButton.setBounds(650, 250, 100, 40);
-	switchFilterButton.setBounds(250, 250, 100, 40);
-	harmonicCompensButton.setBounds(450, 250, 100, 40);
+	masterBypassButton.setBounds(50, 255, 100, 40);
+	switchFilterButton.setBounds(250, 255, 100, 40);
+	harmonicCompensButton.setBounds(450, 255, 100, 40);
+	soloSubButton.setBounds(650, 248, 100, 30);
+	muteSubButton.setBounds(650, 270, 100, 30);
 	
 	// Setting slider sizes and positions
 	inputGainSlider.setBounds(50, 110, defaultKnobWidth, defaultKnobHeight);
@@ -258,7 +264,8 @@ void PrototypeAudioProcessorEditor::timerCallback() {
 	soloSubButton.setToggleState((bool)getProcessor().paramSoloSub->getValue(), dontSendNotification);
 	switchFilterButton.setToggleState((bool)getProcessor().paramSwitchFilter->getValue(), dontSendNotification);
 	harmonicCompensButton.setToggleState((bool)getProcessor().paramHarmonicCompens->getValue(), dontSendNotification);
-
+	muteSubButton.setToggleState((bool)getProcessor().paramMuteSub->getValue(), dontSendNotification);
+	
 	inputGainSlider.setValue(getProcessor().paramInputGain->getValue(), dontSendNotification);
 	preSubGainSlider.setValue(getProcessor().paramPreSubGain->getValue(), dontSendNotification);
 	bpFreqSlider.setValue(getProcessor().paramBpFreq->getValue(), dontSendNotification);
@@ -333,4 +340,5 @@ AudioProcessorParameter* PrototypeAudioProcessorEditor::getParameterFromButton(c
 	if (button == &soloSubButton) { return getProcessor().paramSoloSub; }
 	if (button == &switchFilterButton) { return getProcessor().paramSwitchFilter; }
 	if (button == &harmonicCompensButton) { return getProcessor().paramHarmonicCompens; }
+	if (button == &muteSubButton) { return getProcessor().paramMuteSub; }
 }

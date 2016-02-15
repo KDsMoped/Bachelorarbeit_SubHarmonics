@@ -46,6 +46,7 @@ private:
 	ToggleButton soloSubButton;
 	ToggleButton switchFilterButton;
 	ToggleButton harmonicCompensButton;
+	ToggleButton muteSubButton;
 
 	Slider inputGainSlider;
 	Label inputGainLabel;
