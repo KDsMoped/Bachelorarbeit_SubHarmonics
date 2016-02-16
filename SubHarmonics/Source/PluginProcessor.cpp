@@ -264,18 +264,16 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 	const int numChannels = getMainBusNumInputChannels();
 	const int sampleRate = getSampleRate();
 
-
     // Clearing obsolete output channels
 	for (int i = numChannels; i < getNumOutputChannels(); i++) {
 		buffer.clear(i, 0, numSamples);
 	}
 
-
+	// Mono Sum Buffer
 	float monoData[4096];
 	for (int i = 0; i < numSamples; i++) {
 		monoData[i] = 0;
 	}
-
 
 	// Debug Signal Buffer
 	float debugData[4096][2];
@@ -285,9 +283,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 		}
 	}
 
-    // This is the place where you'd normally do the guts of your plugin's
-    // audio processing...
-	
+	// ----- Preparing Effect Processing -----
 	for (int ch = 0; ch < numChannels; ch++) {
 		// Retrieve pointers to modify each buffers channel data
 		float* channelData = buffer.getWritePointer(ch);
@@ -297,28 +293,28 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			if (paramMasterBypass->getValue() == 0) {
 				// Apply Input Gain
 				channelData[i] *= convertDBtoFloat(paramInputGain->getValue());
-				// Mono Sum
+				// Building Mono Sum
 				monoData[i] += (channelData[i] / 2);
 			}
 		}
 	}
 
-
+	// ----- Effect Processing on Mono Sum -----
 	for (int i = 0; i < numSamples; i++) {
 		// Check if bypassed
 		if (paramMasterBypass->getValue() == 0) {
-			// Store current sample value in buffers for the various signal paths
 			float effectSample = monoData[i];
-
-			// Applay Sub Pre Gain
+			
+			// ----- Pre Processing -----
+			// Applay Pre Sub Gain
 			effectSample *= convertDBtoFloat(paramPreSubGain->getValue());
-
-			// Signal Conditioning
+			debugData[i][0] = effectSample;
+			// Signal Conditioning - extracting base frequency
 			if (paramSwitchFilter->getValue() == 0) {
 				// Pre Sub BPF
 				biquadPreSubBPF->setFilterCoeffs(sampleRate, paramBpFreq->getValue(), paramBpQ->getValue());
 				biquadPreSubBPF->processFilter(&effectSample, 0);
-
+				// Pre Calculation for Phase Correction
 				biquadTriggerAPF->setFilterCoeffs(sampleRate, paramBpFreq->getValue(), 0);
 			}
 			else {
@@ -328,40 +324,38 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 				// Pre Sub HPF
 				biquadPreSubHPF->setFilterCoeffs(getSampleRate(), paramHpfFreq->getValue(), 0.707f);
 				biquadPreSubHPF->processFilter(&effectSample, 0);
-
+				// Pre Calculation for Phase Correction
 				float midFreq = (paramLpfFreq->getValue() + paramHpfFreq->getValue()) / 2;
 				biquadTriggerAPF->setFilterCoeffs(sampleRate, midFreq, 0);
 			}
 
-			
-			// Forking effect signal paths
+			// Saving effect sample for trigger path
 			float triggerSample = effectSample;
 
 
+			// ----- Signal Synthesis Path -----
 			// Peak Detector to generate the Offset "1"
 			float envelopeSample = peakDetector->calcEnvelope(effectSample, paramDecay->getValue(), sampleRate);
 
 			// Summing Unit
 			effectSample = (effectSample + envelopeSample);// / 2;
-			debugData[i][1] = effectSample;
 
 			// Square Root Extractor
 			effectSample = fmax(effectSample, 0.f);
 			effectSample = sqrtf(effectSample);
-			debugData[i][0] = effectSample;
 
+			// Harmonic Compensation Phase Correction
 			if (paramHarmonicCompens->getValue() != 0.f) {
 				biquadCompAPF->setFilterCoeffs(sampleRate, 40, 0.707f);
 				biquadCompAPF->processFilter(&effectSample, 0);
 			}
 			
 
-			// Trigger Circuit
+			// ----- Trigger Path -----
+			// First order allpass for ~90° phase shift
+			//biquadTriggerAPF->processFilter(&triggerSample, 0);
 
-			// Optional first order allpass
-			biquadTriggerAPF->processFilter(&triggerSample, 0);
-
-			// Harmonic Compensation
+			// Harmonic Compensation LPF and Compressor
 			if (paramHarmonicCompens->getValue() != 0.f) {
 				biquadPreTriggerLPF->setFilterCoeffs(sampleRate, 40, 0.707f);
 				biquadPreTriggerLPF->processFilter(&triggerSample, 0);
@@ -373,7 +367,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 				// Make up gain
 				triggerSample *= 30;
 			}
-
+			
 			// Schmitt-Trigger
 			float posHyst = convertDBtoFloat(paramHyst->getValue());
 			float negHyst = posHyst * -1;
@@ -391,19 +385,21 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 				}
 			}
 
-			// Counter
+			// Variable Amplifier
 			if (triggerChangeCount == 2) {
 				sign *= -1;
 				ramper->setTarget(signumGain, sign, 8);
 				triggerChangeCount = 0;
 			}
-			
-			// Variable Amplifier
+
 			ramper->ramp(signumGain);
 			if (signumGain > 1.f) { signumGain = 1.f; }
 			if (signumGain < -1.f) { signumGain = -1.f; }
 			effectSample *= sign;// signumGain;
 		
+			debugData[i][1] = effectSample;
+
+			// ----- Post Processing -----
 			// Multiply with envelope
 			effectSample *= envelopeSample;
 			
@@ -420,11 +416,11 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			biquadPostSubHPF->setFilterCoeffs(sampleRate, 19.f, 0.707f);
 			//biquadPostSubHPF->processFilter(&effectSample, 0);
 			
-			
 			monoData[i] = effectSample;
 		}
 	}
 
+	// ----- Calculating Output -----
 	for (int ch = 0; ch < numChannels; ch++) {
 		// Retrieve pointers to modify each buffers channel data
 		float* channelData = buffer.getWritePointer(ch);
@@ -444,9 +440,9 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 				}
 
 				// Mixing Amplifier 
-				channelData[i] = ((directOut * convertDBtoFloat(paramDirectGain->getValue())) + (subOut * convertDBtoFloat(paramPostSubGain->getValue())));// / (sqrtf(2.f));
+				channelData[i] = (directOut * convertDBtoFloat(paramDirectGain->getValue())) + (subOut * convertDBtoFloat(paramPostSubGain->getValue()));
 
-				//channelData[i] = debugData[i][ch];
+				channelData[i] = debugData[i][ch];
 				
 				// Apply Output Gain
 				channelData[i] *= convertDBtoFloat(paramOutputGain->getValue());
