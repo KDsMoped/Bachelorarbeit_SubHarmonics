@@ -21,12 +21,12 @@
 //==============================================================================
 /**
 */
-class PrototypeAudioProcessor  : public AudioProcessor
+class SubHarmonicsAudioProcessor  : public AudioProcessor
 {
 public:
     //==============================================================================
-    PrototypeAudioProcessor();
-    ~PrototypeAudioProcessor();
+    SubHarmonicsAudioProcessor();
+    ~SubHarmonicsAudioProcessor();
 
     //==============================================================================
     void prepareToPlay (double sampleRate, int samplesPerBlock) override;
@@ -106,7 +106,7 @@ private:
 	float yk1;
 
 	//==============================================================================
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PrototypeAudioProcessor)
+    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (SubHarmonicsAudioProcessor)
 };
 
 

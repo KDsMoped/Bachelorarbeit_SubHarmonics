@@ -18,14 +18,14 @@
 //==============================================================================
 /**
 */
-class PrototypeAudioProcessorEditor : public AudioProcessorEditor,
+class SubHarmonicsAudioProcessorEditor : public AudioProcessorEditor,
 									  private Slider::Listener,
 									  private Button::Listener,
 									  private Timer
 {
 public:
-    PrototypeAudioProcessorEditor (PrototypeAudioProcessor&);
-    ~PrototypeAudioProcessorEditor();
+	SubHarmonicsAudioProcessorEditor(SubHarmonicsAudioProcessor&);
+	~SubHarmonicsAudioProcessorEditor();
 
     //==============================================================================
 	void timerCallback() override;
@@ -40,7 +40,7 @@ private:
 	/*
 	// This reference is provided as a quick way for your editor to
     // access the processor object that created it.
-    // PrototypeAudioProcessor& processor;
+    // SubHarmonicsAudioProcessor& processor;
 	*/
 	ToggleButton masterBypassButton;
 	ToggleButton soloSubButton;
@@ -85,15 +85,15 @@ private:
 	Label outputGainLabel;
 
 	//==============================================================================
-	PrototypeAudioProcessor& getProcessor() const
+	SubHarmonicsAudioProcessor& getProcessor() const
 	{
-		return static_cast<PrototypeAudioProcessor&> (processor);
+		return static_cast<SubHarmonicsAudioProcessor&> (processor);
 	}
 
 	AudioProcessorParameter* getParameterFromSlider(const Slider*) const;
 	AudioProcessorParameter* getParameterFromButton(const Button*) const;
 
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (PrototypeAudioProcessorEditor)
+	JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SubHarmonicsAudioProcessorEditor)
 };
 
 

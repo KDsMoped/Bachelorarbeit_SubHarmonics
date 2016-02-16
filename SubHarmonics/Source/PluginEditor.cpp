@@ -13,7 +13,7 @@
 
 
 //==============================================================================
-PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProcessor& owningProcessor)
+SubHarmonicsAudioProcessorEditor::SubHarmonicsAudioProcessorEditor(SubHarmonicsAudioProcessor& owningProcessor)
 	: AudioProcessorEditor(owningProcessor) {
 
     // Make sure that before the constructor has finished, you've set the
@@ -197,11 +197,11 @@ PrototypeAudioProcessorEditor::PrototypeAudioProcessorEditor(PrototypeAudioProce
 	startTimer(50);
 }
 
-PrototypeAudioProcessorEditor::~PrototypeAudioProcessorEditor() {
+SubHarmonicsAudioProcessorEditor::~SubHarmonicsAudioProcessorEditor() {
 }
 
 //==============================================================================
-void PrototypeAudioProcessorEditor::paint (Graphics& g)
+void SubHarmonicsAudioProcessorEditor::paint (Graphics& g)
 {
 	// Fill the whole window white
 	g.fillAll (Colours::grey);
@@ -213,7 +213,7 @@ void PrototypeAudioProcessorEditor::paint (Graphics& g)
 	g.setFont (15.0f);
 }
 
-void PrototypeAudioProcessorEditor::resized()
+void SubHarmonicsAudioProcessorEditor::resized()
 {
     // This is generally where you'll want to lay out the positions of any
     // subcomponents in your editor..
@@ -259,7 +259,7 @@ void PrototypeAudioProcessorEditor::resized()
 
 //==============================================================================
 // This timer periodically checks whether any of the filter's parameters have changed...
-void PrototypeAudioProcessorEditor::timerCallback() {
+void SubHarmonicsAudioProcessorEditor::timerCallback() {
 	masterBypassButton.setToggleState((bool)getProcessor().paramMasterBypass->getValue(), dontSendNotification);
 	soloSubButton.setToggleState((bool)getProcessor().paramSoloSub->getValue(), dontSendNotification);
 	switchFilterButton.setToggleState((bool)getProcessor().paramSwitchFilter->getValue(), dontSendNotification);
@@ -282,7 +282,7 @@ void PrototypeAudioProcessorEditor::timerCallback() {
 
 //==============================================================================
 // This is our Slider::Listener callback, when the user drags a slider.
-void PrototypeAudioProcessorEditor::sliderValueChanged(Slider *slider) {
+void SubHarmonicsAudioProcessorEditor::sliderValueChanged(Slider *slider) {
 	if (AudioProcessorParameter* param = getParameterFromSlider(slider))
 	{
 		// It's vital to use setValueNotifyingHost to change any parameters that are automatable
@@ -292,7 +292,7 @@ void PrototypeAudioProcessorEditor::sliderValueChanged(Slider *slider) {
 	}
 }
 
-void PrototypeAudioProcessorEditor::sliderDragStarted(Slider* slider)
+void SubHarmonicsAudioProcessorEditor::sliderDragStarted(Slider* slider)
 {
 	if (AudioProcessorParameter* param = getParameterFromSlider(slider))
 	{
@@ -300,7 +300,7 @@ void PrototypeAudioProcessorEditor::sliderDragStarted(Slider* slider)
 	}
 }
 
-void PrototypeAudioProcessorEditor::sliderDragEnded(Slider* slider)
+void SubHarmonicsAudioProcessorEditor::sliderDragEnded(Slider* slider)
 {
 	if (AudioProcessorParameter* param = getParameterFromSlider(slider)) {
 		param->endChangeGesture();
@@ -309,7 +309,7 @@ void PrototypeAudioProcessorEditor::sliderDragEnded(Slider* slider)
 
 //==============================================================================
 // TODO:: make to toggleButtonClicked?
-void PrototypeAudioProcessorEditor::buttonClicked(Button* button)
+void SubHarmonicsAudioProcessorEditor::buttonClicked(Button* button)
 {
 	if (AudioProcessorParameter* param = getParameterFromButton(button)) {
 		param->setValueNotifyingHost((float)button->getToggleState());
@@ -319,7 +319,7 @@ void PrototypeAudioProcessorEditor::buttonClicked(Button* button)
 
 
 //==============================================================================
-AudioProcessorParameter* PrototypeAudioProcessorEditor::getParameterFromSlider(const Slider* slider) const {
+AudioProcessorParameter* SubHarmonicsAudioProcessorEditor::getParameterFromSlider(const Slider* slider) const {
 	if (slider == &inputGainSlider) { return getProcessor().paramInputGain; }
 	if (slider == &preSubGainSlider) { return getProcessor().paramPreSubGain; }
 	if (slider == &bpFreqSlider) { return getProcessor().paramBpFreq; }
@@ -335,7 +335,7 @@ AudioProcessorParameter* PrototypeAudioProcessorEditor::getParameterFromSlider(c
 	return nullptr;
 }
 
-AudioProcessorParameter* PrototypeAudioProcessorEditor::getParameterFromButton(const Button* button) const {
+AudioProcessorParameter* SubHarmonicsAudioProcessorEditor::getParameterFromButton(const Button* button) const {
 	if (button == &masterBypassButton) { return getProcessor().paramMasterBypass; }
 	if (button == &soloSubButton) { return getProcessor().paramSoloSub; }
 	if (button == &switchFilterButton) { return getProcessor().paramSwitchFilter; }

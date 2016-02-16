@@ -81,7 +81,7 @@ const float defaultPostSubGain = 0.f;
 const float defaultOutputGain = 0.f;
 
 //==============================================================================
-PrototypeAudioProcessor::PrototypeAudioProcessor() {
+SubHarmonicsAudioProcessor::SubHarmonicsAudioProcessor() {
 	// Create biquad filter objects
 	biquadPreSubBPF = new BiquadFilter(filterTypeBandPass, filterOrder8);
 	biquadPreSubHPF = new BiquadFilter(filterTypeHighPass, filterOrder8);
@@ -120,36 +120,36 @@ PrototypeAudioProcessor::PrototypeAudioProcessor() {
 	addParameter(paramOutputGain = new FloatParameter(defaultOutputGain, 0, "Output Gain"));
 }
 
-PrototypeAudioProcessor::~PrototypeAudioProcessor() {
+SubHarmonicsAudioProcessor::~SubHarmonicsAudioProcessor() {
 }
 
 //==============================================================================
-const String PrototypeAudioProcessor::getName() const
+const String SubHarmonicsAudioProcessor::getName() const
 {
     return JucePlugin_Name;
 }
 
-const String PrototypeAudioProcessor::getInputChannelName (int channelIndex) const
+const String SubHarmonicsAudioProcessor::getInputChannelName (int channelIndex) const
 {
     return String (channelIndex + 1);
 }
 
-const String PrototypeAudioProcessor::getOutputChannelName (int channelIndex) const
+const String SubHarmonicsAudioProcessor::getOutputChannelName (int channelIndex) const
 {
     return String (channelIndex + 1);
 }
 
-bool PrototypeAudioProcessor::isInputChannelStereoPair (int index) const
+bool SubHarmonicsAudioProcessor::isInputChannelStereoPair (int index) const
 {
     return true;
 }
 
-bool PrototypeAudioProcessor::isOutputChannelStereoPair (int index) const
+bool SubHarmonicsAudioProcessor::isOutputChannelStereoPair (int index) const
 {
     return true;
 }
 
-bool PrototypeAudioProcessor::acceptsMidi() const
+bool SubHarmonicsAudioProcessor::acceptsMidi() const
 {
    #if JucePlugin_WantsMidiInput
     return true;
@@ -158,7 +158,7 @@ bool PrototypeAudioProcessor::acceptsMidi() const
    #endif
 }
 
-bool PrototypeAudioProcessor::producesMidi() const
+bool SubHarmonicsAudioProcessor::producesMidi() const
 {
    #if JucePlugin_ProducesMidiOutput
     return true;
@@ -167,42 +167,42 @@ bool PrototypeAudioProcessor::producesMidi() const
    #endif
 }
 
-bool PrototypeAudioProcessor::silenceInProducesSilenceOut() const
+bool SubHarmonicsAudioProcessor::silenceInProducesSilenceOut() const
 {
     return false;
 }
 
-double PrototypeAudioProcessor::getTailLengthSeconds() const
+double SubHarmonicsAudioProcessor::getTailLengthSeconds() const
 {
     return 0.0;
 }
 
-int PrototypeAudioProcessor::getNumPrograms()
+int SubHarmonicsAudioProcessor::getNumPrograms()
 {
     return 1;   // NB: some hosts don't cope very well if you tell them there are 0 programs,
                 // so this should be at least 1, even if you're not really implementing programs.
 }
 
-int PrototypeAudioProcessor::getCurrentProgram()
+int SubHarmonicsAudioProcessor::getCurrentProgram()
 {
     return 0;
 }
 
-void PrototypeAudioProcessor::setCurrentProgram (int index)
+void SubHarmonicsAudioProcessor::setCurrentProgram (int index)
 {
 }
 
-const String PrototypeAudioProcessor::getProgramName (int index)
+const String SubHarmonicsAudioProcessor::getProgramName (int index)
 {
     return String();
 }
 
-void PrototypeAudioProcessor::changeProgramName (int index, const String& newName)
+void SubHarmonicsAudioProcessor::changeProgramName (int index, const String& newName)
 {
 }
 
 //==============================================================================
-void PrototypeAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
+void SubHarmonicsAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
     // Use this method as the place to do any pre-playback
     // initialisation that you need..
@@ -232,14 +232,14 @@ void PrototypeAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
 	
 }
 
-void PrototypeAudioProcessor::releaseResources()
+void SubHarmonicsAudioProcessor::releaseResources()
 {
     // When playback stops, you can use this as an opportunity to free up any
     // spare memory, etc.
 	delete ramper;
 }
 
-void PrototypeAudioProcessor::reset()
+void SubHarmonicsAudioProcessor::reset()
 {
 	// Use this method as the place to clear any delay lines, buffers, etc, as it
 	// means there's been a break in the audio's continuity.
@@ -258,7 +258,7 @@ void PrototypeAudioProcessor::reset()
 
 }
 
-void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& midiMessages)
+void SubHarmonicsAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffer& midiMessages)
 {
 	const int numSamples = buffer.getNumSamples();
 	const int numChannels = getMainBusNumInputChannels();
@@ -308,7 +308,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			// ----- Pre Processing -----
 			// Applay Pre Sub Gain
 			effectSample *= convertDBtoFloat(paramPreSubGain->getValue());
-			debugData[i][0] = effectSample;
+			
 			// Signal Conditioning - extracting base frequency
 			if (paramSwitchFilter->getValue() == 0) {
 				// Pre Sub BPF
@@ -350,6 +350,8 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 				biquadCompAPF->processFilter(&effectSample, 0);
 			}
 			
+			debugData[i][0] = monoData[i];
+			debugData[i][1] = effectSample;
 
 			// ----- Trigger Path -----
 			// First order allpass for ~90° phase shift
@@ -367,7 +369,7 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 				// Make up gain
 				triggerSample *= 30;
 			}
-			
+
 			// Schmitt-Trigger
 			float posHyst = convertDBtoFloat(paramHyst->getValue());
 			float negHyst = posHyst * -1;
@@ -397,7 +399,6 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 			if (signumGain < -1.f) { signumGain = -1.f; }
 			effectSample *= sign;// signumGain;
 		
-			debugData[i][1] = effectSample;
 
 			// ----- Post Processing -----
 			// Multiply with envelope
@@ -464,18 +465,18 @@ void PrototypeAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBuffe
 }
 
 //==============================================================================
-bool PrototypeAudioProcessor::hasEditor() const
+bool SubHarmonicsAudioProcessor::hasEditor() const
 {
     return true; // (change this to false if you choose to not supply an editor)
 }
 
-AudioProcessorEditor* PrototypeAudioProcessor::createEditor()
+AudioProcessorEditor* SubHarmonicsAudioProcessor::createEditor()
 {
-    return new PrototypeAudioProcessorEditor (*this);
+    return new SubHarmonicsAudioProcessorEditor (*this);
 }
 
 //==============================================================================
-void PrototypeAudioProcessor::getStateInformation (MemoryBlock& destData)
+void SubHarmonicsAudioProcessor::getStateInformation (MemoryBlock& destData)
 {
 	// You should use this method to store your parameters in the memory block.
 	
@@ -504,7 +505,7 @@ void PrototypeAudioProcessor::getStateInformation (MemoryBlock& destData)
 	copyXmlToBinary(xml, destData);
 }
 
-void PrototypeAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
+void SubHarmonicsAudioProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
     // You should use this method to restore your parameters from this memory block,
     // whose contents will have been created by the getStateInformation() call.
@@ -542,5 +543,5 @@ void PrototypeAudioProcessor::setStateInformation (const void* data, int sizeInB
 // This creates new instances of the plugin..
 AudioProcessor* JUCE_CALLTYPE createPluginFilter()
 {
-    return new PrototypeAudioProcessor();
+    return new SubHarmonicsAudioProcessor();
 }
