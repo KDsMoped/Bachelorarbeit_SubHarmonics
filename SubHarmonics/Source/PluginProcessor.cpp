@@ -350,12 +350,10 @@ void SubHarmonicsAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBu
 				biquadCompAPF->processFilter(&effectSample, 0);
 			}
 			
-			debugData[i][0] = monoData[i];
-			debugData[i][1] = effectSample;
 
 			// ----- Trigger Path -----
 			// First order allpass for ~90° phase shift
-			//biquadTriggerAPF->processFilter(&triggerSample, 0);
+			biquadTriggerAPF->processFilter(&triggerSample, 0);
 
 			// Harmonic Compensation LPF and Compressor
 			if (paramHarmonicCompens->getValue() != 0.f) {
@@ -387,7 +385,7 @@ void SubHarmonicsAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBu
 				}
 			}
 
-			// Variable Amplifier
+			// Alternating Amplifier
 			if (triggerChangeCount == 2) {
 				sign *= -1;
 				ramper->setTarget(signumGain, sign, 8);
@@ -399,6 +397,9 @@ void SubHarmonicsAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBu
 			if (signumGain < -1.f) { signumGain = -1.f; }
 			effectSample *= sign;// signumGain;
 		
+			debugData[i][0] = effectSample; //monoData[i];
+			debugData[i][1] = effectSample;
+
 
 			// ----- Post Processing -----
 			// Multiply with envelope
@@ -459,6 +460,25 @@ void SubHarmonicsAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBu
 				biquadPreTriggerLPF->processFilter(&channelData[i], ch);
 				}
 				*/
+
+				if (paramSwitchFilter->getValue() == 0) {
+					// Pre Sub BPF
+					biquadPreSubBPF->setFilterCoeffs(sampleRate, paramBpFreq->getValue(), paramBpQ->getValue());
+					biquadPreSubBPF->processFilter(&channelData[i], ch);
+					// Pre Calculation for Phase Correction
+					biquadTriggerAPF->setFilterCoeffs(sampleRate, paramBpFreq->getValue(), 0);
+				}
+				else {
+					// Pre Sub LPF
+					biquadPreSubLPF->setFilterCoeffs(getSampleRate(), paramLpfFreq->getValue(), 0.707f);
+					biquadPreSubLPF->processFilter(&channelData[i], ch);
+					// Pre Sub HPF
+					biquadPreSubHPF->setFilterCoeffs(getSampleRate(), paramHpfFreq->getValue(), 0.707f);
+					biquadPreSubHPF->processFilter(&channelData[i], ch);
+					// Pre Calculation for Phase Correction
+					float midFreq = (paramLpfFreq->getValue() + paramHpfFreq->getValue()) / 2;
+					biquadTriggerAPF->setFilterCoeffs(sampleRate, midFreq, 0);
+				}
 			}
 		}
 	}

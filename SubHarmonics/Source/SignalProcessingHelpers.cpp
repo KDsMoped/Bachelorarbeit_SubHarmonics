@@ -86,55 +86,55 @@ void BiquadFilter::setFilterCoeffs(float sr, float f, float q) {
 
 	if (filterType == filterTypeHighPass) {
 		if (filterOrder == filterOrder1){
-			coeffB0 = 1 / (k + 1);
-			coeffB1 = coeffB0 * -1;
-			coeffB2 = 0;
-			coeffA1 = (k - 1) / (k + 1);
-			coeffA2 = 0;
+			coeffB0 = 1.f / (k + 1.f);
+			coeffB1 = coeffB0 * -1.f;
+			coeffB2 = 0.f;
+			coeffA1 = (k - 1.f) / (k + 1.f);
+			coeffA2 = 0.f;
 		}
 		else {
-			coeffB0 = q / ((pow(k, 2) * q) + k + q);
-			coeffB1 = (-2 * q) / ((pow(k, 2) * q) + k + q);
+			coeffB0 = q / ((pow(k, 2.f) * q) + k + q);
+			coeffB1 = (-2.f * q) / ((pow(k, 2.f) * q) + k + q);
 			coeffB2 = coeffB0;
-			coeffA1 = (2 * q * (pow(k, 2) - 1)) / ((pow(k, 2) * q) + k + q);
-			coeffA2 = ((pow(k, 2) * q) - k + q) / ((pow(k, 2) * q) + k + q);
+			coeffA1 = (2.f * q * (pow(k, 2.f) - 1)) / ((pow(k, 2.f) * q) + k + q);
+			coeffA2 = ((pow(k, 2.f) * q) - k + q) / ((pow(k, 2.f) * q) + k + q);
 		}
 	}
 	if (filterType == filterTypeLowPass) {
 		if (filterOrder == filterOrder1) {
-			coeffB0 = k / (k + 1);
+			coeffB0 = k / (k + 1.f);
 			coeffB1 = coeffB0;
-			coeffB2 = 0;
-			coeffA1 = (k - 1) / (k + 1);
-			coeffA2 = 0;
+			coeffB2 = 0.f;
+			coeffA1 = (k - 1.f) / (k + 1.f);
+			coeffA2 = 0.f;
 		}
 		else {
-			coeffB0 = (pow(k, 2) * q) / ((pow(k, 2) * q) + k + q);
-			coeffB1 = (2 * (pow(k, 2) * q)) / ((pow(k, 2) * q) + k + q);
+			coeffB0 = (pow(k, 2.f) * q) / ((pow(k, 2.f) * q) + k + q);
+			coeffB1 = (2.f * (pow(k, 2.f) * q)) / ((pow(k, 2.f) * q) + k + q);
 			coeffB2 = coeffB0;
-			coeffA1 = (2 * q * (pow(k, 2) - 1)) / ((pow(k, 2) * q) + k + q);
-			coeffA2 = ((pow(k, 2) * q) - k + q) / ((pow(k, 2) * q) + k + q);
+			coeffA1 = (2.f * q * (pow(k, 2.f) - 1.f)) / ((pow(k, 2.f) * q) + k + q);
+			coeffA2 = ((pow(k, 2.f) * q) - k + q) / ((pow(k, 2.f) * q) + k + q);
 		}
 	}
 	if (filterType == filterTypeBandPass) {
-		coeffB0 = k / ((pow(k, 2) * q) + k + q);
+		coeffB0 = k / ((pow(k, 2.f) * q) + k + q);
 		coeffB1 = 0.f;
-		coeffB2 = coeffB0 * -1;
-		coeffA1 = (2 * q * (pow(k, 2) - 1)) / ((pow(k, 2) * q) + k + q);
-		coeffA2 = ((pow(k, 2) * q) - k + q) / ((pow(k, 2) * q) + k + q);
+		coeffB2 = coeffB0 * -1.f;
+		coeffA1 = (2.f * q * (pow(k, 2.f) - 1.f)) / ((pow(k, 2.f) * q) + k + q);
+		coeffA2 = ((pow(k, 2.f) * q) - k + q) / ((pow(k, 2.f) * q) + k + q);
 	}
 	if (filterType == filterTypeAllPass) {
 		if (filterOrder == filterOrder1) {
-			coeffB0 = (k - 1) / (k + 1);
-			coeffB1 = 1;
-			coeffB2 = 0;
+			coeffB0 = (k - 1.f) / (k + 1.f);
+			coeffB1 = 1.f;
+			coeffB2 = 0.f;
 			coeffA1 = coeffB0;
-			coeffA2 = 0;
+			coeffA2 = 0.f;
 		}
 		else {
-			coeffB0 = ((pow(k, 2) * q) - k + q) / ((pow(k, 2) * q) + k + q);
-			coeffB1 = (2 * q * (pow(k, 2) - 1)) / ((pow(k, 2) * q) + k + q);
-			coeffB2 = 1;
+			coeffB0 = ((pow(k, 2.f) * q) - k + q) / ((pow(k, 2.f) * q) + k + q);
+			coeffB1 = (2.f * q * (pow(k, 2.f) - 1.f)) / ((pow(k, 2.f) * q) + k + q);
+			coeffB2 = 1.f;
 			coeffA1 = coeffB1;
 			coeffA2 = coeffB0;
 		}
@@ -158,25 +158,25 @@ void BiquadFilter::flushBuffer() {
 
 float PeakDetector::calcEnvelope(float sample, float timeConstant, int sr) {
 	float x = sample;
-	float attack = .1f;
+	float attack = 0.1f;
 	float release = timeConstant;
 	float dt = 1.f / sr;
 	float tc = log10(0.01f);
 
 	// Calculate rect, AT and RT values
 	float rect = fabs(x);
-	float at = 1 - exp((-2.2f * dt) / (attack / 1000));
-	float rt = 1 - exp((-2.2f * dt) / (release / 1000));
+	float at = 1.f - exp((-2.2f * dt) / (attack / 1000.f));
+	float rt = 1.f - exp((-2.2f * dt) / (release / 1000.f));
 	
 	// Writing the output value before calculation starts imitates the one sample delay
 	float y = vc;
 	
 	// Calculate the envelope value for attack and release case
 	if (rect > vc) {
-		vc = (1 - at) * vc + at * rect;
+		vc = (1.f - at) * vc + at * rect;
 	}
 	else {
-		vc = (1 - rt) * vc;
+		vc = (1.f - rt) * vc;
 	}
 
 	return y;
@@ -201,7 +201,7 @@ float Compressor::calcGain(float sample, float threshold, float ratio, float rel
 	float env = peakDetector->calcEnvelope(sample, release, sr);
 	
 	// Convert Envelope to logarithmic value
-	env = 20 * log(env);
+	env = 20.f * log(env);
 
 	// Compute gain; Threshold and detection values in dB
 	float y = cs * (threshold - env);
