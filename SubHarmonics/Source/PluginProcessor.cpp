@@ -88,7 +88,6 @@ SubHarmonicsAudioProcessor::SubHarmonicsAudioProcessor() {
 	biquadPreSubLPF = new BiquadFilter(filterTypeLowPass, filterOrder8);
 	biquadPostSubLPF = new BiquadFilter(filterTypeLowPass, filterOrder6);
 	biquadStaticPostSubLPF = new BiquadFilter(filterTypeLowPass, filterOrder1);
-	biquadPostSubHPF = new BiquadFilter(filterTypeHighPass, filterOrder2);
 	biquadTriggerAPF = new BiquadFilter(filterTypeAllPass, filterOrder1);
 	biquadPreTriggerLPF = new BiquadFilter(filterTypeLowPass, filterOrder4);
 	biquadCompAPF = new BiquadFilter(filterTypeAllPass, filterOrder2);
@@ -216,7 +215,6 @@ void SubHarmonicsAudioProcessor::prepareToPlay (double sampleRate, int samplesPe
 	ramper = new Ramper();
 
 	// Clearing buffers
-	biquadPostSubHPF->flushBuffer();
 	biquadPostSubLPF->flushBuffer();
 	biquadStaticPostSubLPF->flushBuffer();
 	biquadPreSubHPF->flushBuffer();
@@ -403,7 +401,7 @@ void SubHarmonicsAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBu
 
 			// ----- Post Processing -----
 			// Multiply with envelope
-			effectSample *= envelopeSample;
+			//effectSample *= envelopeSample;
 			
 			// Post Processing
 			// Static Post
@@ -413,10 +411,6 @@ void SubHarmonicsAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBu
 			// Post Sub LPF
 			biquadPostSubLPF->setFilterCoeffs(sampleRate, paramColour->getValue(), 0.707f);
 			biquadPostSubLPF->processFilter(&effectSample, 0);
-
-			// Post Sub HPF
-			biquadPostSubHPF->setFilterCoeffs(sampleRate, 19.f, 0.707f);
-			//biquadPostSubHPF->processFilter(&effectSample, 0);
 			
 			monoData[i] = effectSample;
 		}
@@ -444,7 +438,7 @@ void SubHarmonicsAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBu
 				// Mixing Amplifier 
 				channelData[i] = (directOut * convertDBtoFloat(paramDirectGain->getValue())) + (subOut * convertDBtoFloat(paramPostSubGain->getValue()));
 
-				channelData[i] = debugData[i][ch];
+				//channelData[i] = debugData[i][ch];
 				
 				// Apply Output Gain
 				channelData[i] *= convertDBtoFloat(paramOutputGain->getValue());
@@ -460,25 +454,6 @@ void SubHarmonicsAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBu
 				biquadPreTriggerLPF->processFilter(&channelData[i], ch);
 				}
 				*/
-
-				if (paramSwitchFilter->getValue() == 0) {
-					// Pre Sub BPF
-					biquadPreSubBPF->setFilterCoeffs(sampleRate, paramBpFreq->getValue(), paramBpQ->getValue());
-					biquadPreSubBPF->processFilter(&channelData[i], ch);
-					// Pre Calculation for Phase Correction
-					biquadTriggerAPF->setFilterCoeffs(sampleRate, paramBpFreq->getValue(), 0);
-				}
-				else {
-					// Pre Sub LPF
-					biquadPreSubLPF->setFilterCoeffs(getSampleRate(), paramLpfFreq->getValue(), 0.707f);
-					biquadPreSubLPF->processFilter(&channelData[i], ch);
-					// Pre Sub HPF
-					biquadPreSubHPF->setFilterCoeffs(getSampleRate(), paramHpfFreq->getValue(), 0.707f);
-					biquadPreSubHPF->processFilter(&channelData[i], ch);
-					// Pre Calculation for Phase Correction
-					float midFreq = (paramLpfFreq->getValue() + paramHpfFreq->getValue()) / 2;
-					biquadTriggerAPF->setFilterCoeffs(sampleRate, midFreq, 0);
-				}
 			}
 		}
 	}
