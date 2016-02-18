@@ -394,23 +394,23 @@ void SubHarmonicsAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBu
 			if (signumGain > 1.f) { signumGain = 1.f; }
 			if (signumGain < -1.f) { signumGain = -1.f; }
 			effectSample *= sign;// signumGain;
-		
-			debugData[i][0] = effectSample; //monoData[i];
-			debugData[i][1] = effectSample;
 
 
 			// ----- Post Processing -----
 			// Multiply with envelope
-			//effectSample *= envelopeSample;
-			
+			effectSample *= envelopeSample;
+
 			// Post Processing
 			// Static Post
-			biquadStaticPostSubLPF->setFilterCoeffs(sampleRate, 40.f, 0.707f);
-			biquadStaticPostSubLPF->processFilter(&effectSample, 0);
+			//biquadStaticPostSubLPF->setFilterCoeffs(sampleRate, 40.f, 0.707f);
+			//biquadStaticPostSubLPF->processFilter(&effectSample, 0);
 
 			// Post Sub LPF
 			biquadPostSubLPF->setFilterCoeffs(sampleRate, paramColour->getValue(), 0.707f);
 			biquadPostSubLPF->processFilter(&effectSample, 0);
+
+			debugData[i][0] = effectSample; //monoData[i];
+			debugData[i][1] = effectSample;
 			
 			monoData[i] = effectSample;
 		}
@@ -438,7 +438,7 @@ void SubHarmonicsAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBu
 				// Mixing Amplifier 
 				channelData[i] = (directOut * convertDBtoFloat(paramDirectGain->getValue())) + (subOut * convertDBtoFloat(paramPostSubGain->getValue()));
 
-				//channelData[i] = debugData[i][ch];
+				channelData[i] = debugData[i][ch];
 				
 				// Apply Output Gain
 				channelData[i] *= convertDBtoFloat(paramOutputGain->getValue());
