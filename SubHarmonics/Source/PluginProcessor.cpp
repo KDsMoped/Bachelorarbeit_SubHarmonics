@@ -336,7 +336,7 @@ void SubHarmonicsAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBu
 			float envelopeSample = peakDetector->calcEnvelope(effectSample, paramDecay->getValue(), sampleRate);
 
 			// Summing Unit
-			effectSample = (effectSample + envelopeSample);// / 2;
+			effectSample = effectSample + envelopeSample;
 
 			// Square Root Extractor
 			effectSample = fmax(effectSample, 0.f);
@@ -398,19 +398,20 @@ void SubHarmonicsAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBu
 
 			// ----- Post Processing -----
 			// Multiply with envelope
-			effectSample *= envelopeSample;
+			envelopeSample = envelopeSample / convertDBtoFloat(paramPreSubGain->getValue());
+			effectSample *= (envelopeSample);
+
+			debugData[i][0] = effectSample; //monoData[i];
+			debugData[i][1] = effectSample;
 
 			// Post Processing
 			// Static Post
-			//biquadStaticPostSubLPF->setFilterCoeffs(sampleRate, 40.f, 0.707f);
-			//biquadStaticPostSubLPF->processFilter(&effectSample, 0);
+			biquadStaticPostSubLPF->setFilterCoeffs(sampleRate, 40.f, 0.707f);
+			biquadStaticPostSubLPF->processFilter(&effectSample, 0);
 
 			// Post Sub LPF
 			biquadPostSubLPF->setFilterCoeffs(sampleRate, paramColour->getValue(), 0.707f);
 			biquadPostSubLPF->processFilter(&effectSample, 0);
-
-			debugData[i][0] = effectSample; //monoData[i];
-			debugData[i][1] = effectSample;
 			
 			monoData[i] = effectSample;
 		}
@@ -424,7 +425,8 @@ void SubHarmonicsAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBu
 		for (int i = 0; i < numSamples; i++) {
 			// Check if bypassed
 			if (paramMasterBypass->getValue() == 0) {
-				
+
+				// Mixing Amplifier
 				float directOut = channelData[i];
 				float subOut = monoData[i];
 
@@ -434,11 +436,10 @@ void SubHarmonicsAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBu
 				if (paramMuteSub->getValue() == 1) {
 					subOut = 0.f;
 				}
-
-				// Mixing Amplifier 
+ 
 				channelData[i] = (directOut * convertDBtoFloat(paramDirectGain->getValue())) + (subOut * convertDBtoFloat(paramPostSubGain->getValue()));
 
-				channelData[i] = debugData[i][ch];
+				//channelData[i] = debugData[i][ch];
 				
 				// Apply Output Gain
 				channelData[i] *= convertDBtoFloat(paramOutputGain->getValue());
