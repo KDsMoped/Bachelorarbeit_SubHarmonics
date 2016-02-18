@@ -147,7 +147,7 @@ SubHarmonicsAudioProcessorEditor::SubHarmonicsAudioProcessorEditor(SubHarmonicsA
 
 	// Set properties for the Direct Gain Slider
 	directGainSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
-	directGainSlider.setRange(-12.f, 12.f, 0.1f);
+	directGainSlider.setRange(-18.f, 18.f, 0.1f);
 	directGainSlider.setSliderSnapsToMousePosition(false);
 	directGainSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
 	directGainSlider.setTextValueSuffix(" dB");
@@ -157,7 +157,7 @@ SubHarmonicsAudioProcessorEditor::SubHarmonicsAudioProcessorEditor(SubHarmonicsA
 
 	// Set properties for the Post Sub Gain Slider
 	postSubGainSlider.setSliderStyle(Slider::RotaryHorizontalVerticalDrag);
-	postSubGainSlider.setRange(-12.f, 12.f, 0.1f);
+	postSubGainSlider.setRange(-18.f, 18.f, 0.1f);
 	postSubGainSlider.setSliderSnapsToMousePosition(false);
 	postSubGainSlider.setTextBoxStyle(Slider::TextBoxBelow, false, 50, defaultTextBoxHeight);
 	postSubGainSlider.setTextValueSuffix(" dB");
