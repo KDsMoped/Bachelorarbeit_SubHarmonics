@@ -121,6 +121,10 @@ float convertDBtoFloat(float dbValue) {
 	return pow(10, dbValue / 20);
 }
 
+float convertFloattoDB(float floatValue) {
+	return 20 * log(floatValue);
+}
+
 //==============================================================================
 
 

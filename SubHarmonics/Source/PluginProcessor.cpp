@@ -363,7 +363,7 @@ void SubHarmonicsAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBu
 				triggerSample *= compGain;
 
 				// Make up gain
-				triggerSample *= 30;
+				triggerSample *= convertDBtoFloat(30);
 			}
 
 			// Schmitt-Trigger

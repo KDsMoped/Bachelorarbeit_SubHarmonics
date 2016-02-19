@@ -194,23 +194,20 @@ float Compressor::calcGain(float sample, float threshold, float ratio, float rel
 	// Set slope variable
 	float cs = 1.f - (1.f / ratio);
 
-	// -limiting?
-	// -soft knee with lagrange?
-
 	// Envelope detector
 	float env = peakDetector->calcEnvelope(sample, release, sr);
 	
 	// Convert Envelope to logarithmic value
-	env = 20.f * log(env);
+	float envDB = convertFloattoDB(env);
 
 	// Compute gain; Threshold and detection values in dB
-	float y = cs * (threshold - env);
+	float y = cs * (threshold - envDB);
 
 	// Clamp; this allows ratios of 1:1 to still operate
 	y = fminf(0.f, y);
 
 	// Convert to linear values
-	return pow(10.f, y / 20.f);
+	return convertDBtoFloat(y);
 }
 
 void Compressor::flushDetector() {
