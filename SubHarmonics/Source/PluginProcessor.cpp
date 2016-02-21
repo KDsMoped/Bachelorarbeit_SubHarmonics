@@ -335,6 +335,10 @@ void SubHarmonicsAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBu
 			// Peak Detector to generate the Offset "1"
 			float envelopeSample = peakDetector->calcEnvelope(effectSample, paramDecay->getValue(), sampleRate);
 
+			debugData[i][0] = envelopeSample; //monoData[i];
+			debugData[i][1] = effectSample;
+
+
 			// Summing Unit
 			effectSample = effectSample + envelopeSample;
 
@@ -401,8 +405,7 @@ void SubHarmonicsAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBu
 			envelopeSample = envelopeSample / convertDBtoFloat(paramPreSubGain->getValue());
 			effectSample *= (envelopeSample);
 
-			debugData[i][0] = effectSample; //monoData[i];
-			debugData[i][1] = effectSample;
+
 
 			// Post Processing
 			// Static Post
@@ -445,16 +448,7 @@ void SubHarmonicsAudioProcessor::processBlock (AudioSampleBuffer& buffer, MidiBu
 				channelData[i] *= convertDBtoFloat(paramOutputGain->getValue());
 			}
 			else {
-				/*
-				if (ch == 0) {
-				biquadCompAPF->setFilterCoeffs(getSampleRate(), 40, 0.717f);
-				biquadCompAPF->processFilter(&channelData[i], ch);
-				}
-				else {
-				biquadPreTriggerLPF->setFilterCoeffs(getSampleRate(), 40, 0.717f);
-				biquadPreTriggerLPF->processFilter(&channelData[i], ch);
-				}
-				*/
+
 			}
 		}
 	}
